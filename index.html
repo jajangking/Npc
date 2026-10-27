@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desa Hidup — Simulasi NPC Emergent</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="title">🏰 Desa Hidup <span class="sub">— NPC belajar &amp; berevolusi, tanpa script</span></div>
+      <div id="clock"></div>
+      <div id="controls">
+        <button id="btn-pause" title="Jeda">⏸</button>
+        <button id="btn-1x" class="speed active">1×</button>
+        <button id="btn-4x" class="speed">4×</button>
+        <button id="btn-16x" class="speed">16×</button>
+        <button id="btn-reset" title="Dunia baru">🌍 Dunia Baru</button>
+      </div>
+    </header>
+    <main>
+      <div id="world-wrap">
+        <canvas id="world"></canvas>
+        <div id="stats-bar"></div>
+      </div>
+      <aside id="sidebar">
+        <div id="inspector">
+          <div class="hint">👆 Klik NPC di peta untuk melihat isi kepalanya: kebutuhan, memori, pelajaran hidup, relasi, dan budayanya.</div>
+        </div>
+        <div id="log-wrap">
+          <h3>📜 Kronik Desa</h3>
+          <div id="log"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
