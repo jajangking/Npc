@@ -344,7 +344,8 @@ export const ACTIONS = {
   tempati: {
     emoji: '🔑',
     score(npc, sim) {
-      if (!npc.isAdult || npc.inv.wood < 4) return 0;
+      // tunawisma langsung menghuni (gratis); yang nebeng butuh 2 kayu perbaikan
+      if (!npc.isAdult || npc.inv.wood < (npc.home ? 2 : 0)) return 0;
       if (!sim.emptyHouses || !sim.emptyHouses.length) return 0;
       const drive = homeDrive(npc, sim);
       if (drive <= 0) return 0;
@@ -376,7 +377,7 @@ export const ACTIONS = {
         o.alive && o.home && o.home.x === npc.action.tx && o.home.y === npc.action.ty);
       if (taken) return { done: true, reward: 0.4 };
       t.owner = npc.id; t.emptyDays = 0;
-      npc.inv.wood -= 4;
+      npc.inv.wood -= Math.min(npc.inv.wood, npc.home ? 2 : 0);
       npc.home = { x: npc.action.tx, y: npc.action.ty };
       if (npc.partner?.alive && !npc.partner.ownsHome(sim.world)) npc.partner.home = npc.home;
       for (const c of npc.children) if (c.alive && !c.isAdult) c.home = npc.home;

@@ -621,7 +621,7 @@ export class Sim {
       const x = i % W, y = (i / W) | 0;
       if (occupied.has(x + ',' + y)) { t.emptyDays = 0; continue; }
       t.emptyDays = (t.emptyDays || 0) + 1;
-      if (t.emptyDays > 12) {
+      if (t.emptyDays > 25) {
         t.type = T.GRASS;
         delete t.owner; delete t.level; delete t.emptyDays;
         this.log('🏚️ Sebuah rumah kosong lapuk dan roboh dimakan waktu', 'info');

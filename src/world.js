@@ -195,9 +195,11 @@ export class World {
     // tahun, tapi kawasan yang ramai diinjak tetap terbuka. Tanpa ini,
     // deforestasi permanen akan mematikan peradaban dalam jangka ribuan hari.
     if (this.tick % DAY === 17) {
+      // bersihkan daftar dari tile yang sudah bukan hutan (bekas gundul)
+      this.forestList = this.forestList.filter(t => t.type === T.FOREST);
       const newborn = [];
       for (const t of this.forestList) {
-        if (t.type !== T.FOREST || t.wood < 3) continue;
+        if (t.wood < 3) continue;
         if (!this.rng.chance(0.012 * this.growthMod)) continue;
         const i = this.tiles.indexOf(t); // posisi tile induk
         const x = i % W, y = (i / W) | 0;
@@ -211,6 +213,19 @@ export class World {
         newborn.push(this.tiles[idx]);
       }
       for (const t of newborn) this.forestList.push(t);
+
+      // biji terbawa angin: bahkan dunia yang hutannya LUDES total perlahan
+      // menghijau lagi — tunas liar muncul di tanah lapang yang sunyi
+      if (this.forestList.length < 300) {
+        for (let k = 0; k < 8; k++) {
+          const idx = (this.rng.rand() * this.tiles.length) | 0;
+          const t = this.tiles[idx];
+          if (t.type !== T.GRASS || this.traffic[idx] > 0.5) continue;
+          if (!this.rng.chance(0.07 * this.growthMod)) continue;
+          this.tiles[idx] = { type: T.FOREST, wood: 1, maxWood: this.rng.int(3, 6) };
+          this.forestList.push(this.tiles[idx]);
+        }
+      }
     }
   }
 
