@@ -1,6 +1,7 @@
 import { ACTIONS } from './actions.js';
 import { MEME_POOL } from './social.js';
 import { TECHS, eraName } from './tech.js';
+import { T } from './world.js';
 
 const NEED_LABEL = { hunger: 'Kenyang', energy: 'Energi', social: 'Sosial', senang: 'Senang' };
 const TRAIT_LABEL = { rajin: 'Rajin', supel: 'Supel', berani: 'Berani', penasaran: 'Penasaran' };
@@ -161,7 +162,7 @@ export function renderStats(el, sim) {
     <span>🏛️ <b>${eraName(sim.techs.size)}</b> · ${techIcons}</span>
     <span>🎖️ Kades: <b>${leaderNpc ? leaderNpc.name : '—'}</b></span>
     <span>👥 Populasi <b>${pop}</b> (${kids} anak)</span>
-    <span>🏠 Berumah <b>${houses}</b></span>
+    <span>🏠 Rumah <b>${sim.world.tiles.filter(t => t.type === T.HOUSE).length}</b> · berumah ${houses}</span>
     <span>📚 Ilmu: 🌾${Math.round(k.tani)} 🪓${Math.round(k.kayu)} 🏗️${Math.round(k.konstruksi)} 💰${Math.round(k.dagang)}</span>
     <span>🍖 Harga pangan <b>${m.prices.food}</b></span>
     <span>👶 ${sim.stats.births} · ⚰️ ${sim.stats.deaths} · 💞 ${sim.stats.weddings}</span>
