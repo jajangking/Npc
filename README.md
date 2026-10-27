@@ -41,6 +41,10 @@ nohup node server/server.js > desa.log 2>&1 &
 | `PORT` | `3000` | port HTTP + WebSocket |
 | `DATA_DIR` | `./data` | lokasi `save.json` |
 
+**Desa tidak bisa hilang:**
+- **Cadangan berlapis** — tiap 30 menit `save.json` disalin ke `data/backup-*.json` (8 terakhir disimpan). Kalau save utama korup (listrik mati pas nulis, disk penuh), server otomatis memulihkan dari cadangan terbaru yang sehat.
+- **Migrasi versi save** — update kode tidak mereset desa. Kalau struktur save berubah, tambahkan jalur migrasi di `MIGRATIONS` (`src/persist.js`) dan save lama tetap terbaca.
+
 ## Cara kerja otaknya
 
 ### 🧠 Utility AI + Reinforcement Learning

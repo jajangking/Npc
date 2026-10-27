@@ -12,6 +12,25 @@ import { makeNameGen } from './names.js';
 
 const SAVE_VERSION = 1;
 
+// ---------- MIGRASI ----------
+// Kalau struktur save berubah di masa depan: naikkan SAVE_VERSION,
+// lalu tambahkan fungsi migrasi dari versi lama ke baru di sini.
+// Contoh:  1: (d) => { d.fiturBaru = nilaiDefault; d.v = 2; return d; }
+// Dengan begitu save desa lama TETAP bisa dimuat, tidak pernah reset.
+export const MIGRATIONS = {};
+
+export function migrate(data) {
+  if (!data || typeof data.v !== 'number') throw new Error('save tidak valid');
+  while (data.v < SAVE_VERSION) {
+    const step = MIGRATIONS[data.v];
+    if (!step) throw new Error(`tidak ada jalur migrasi dari v${data.v}`);
+    const from = data.v;
+    data = step(data);
+    if (data.v <= from) throw new Error(`migrasi v${from} tidak menaikkan versi`);
+  }
+  return data;
+}
+
 // ---------- SIMPAN ----------
 export function serializeSim(sim) {
   const npcData = sim.npcs.map(n => ({
@@ -67,7 +86,8 @@ export function serializeSim(sim) {
 
 // ---------- MUAT ----------
 export function restoreSim(data) {
-  if (!data || data.v !== SAVE_VERSION) throw new Error('versi save tidak cocok');
+  data = migrate(data);
+  if (data.v !== SAVE_VERSION) throw new Error('versi save tidak cocok');
 
   const sim = Object.create(Sim.prototype);
   sim.seed = data.seed;

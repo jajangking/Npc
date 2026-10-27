@@ -27,18 +27,40 @@ const BASE_TPS = 60;              // 1× = sama dengan browser (60 tick/detik)
 const AUTOSAVE_MS = 120_000;      // simpan tiap 2 menit
 
 const ACTION_IDS = Object.keys(ACTIONS);
+const BACKUP_EVERY_MS = 30 * 60_000;  // salinan cadangan tiap 30 menit
+const BACKUP_KEEP = 8;                // simpan 8 cadangan terakhir (~4 jam)
 
 // ---------- muat / buat dunia ----------
-let sim;
-try {
-  if (fs.existsSync(SAVE_FILE)) {
-    sim = restoreSim(JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8')));
-    console.log(`💾 Save dimuat — hari ${sim.world.day}, ${sim.npcs.length} warga, seed ${sim.seed}`);
-    sim.log('💾 Desa bangun kembali dari lelap server', 'info');
-  }
-} catch (e) {
-  console.error('⚠️ Gagal muat save, mulai dunia baru:', e.message);
+// Urutan: save.json → kalau rusak/gagal, coba cadangan terbaru satu-satu.
+// Dunia BARU hanya kalau benar-benar tidak ada yang bisa diselamatkan.
+function backupFiles() {
+  try {
+    return fs.readdirSync(DATA_DIR)
+      .filter(f => f.startsWith('backup-') && f.endsWith('.json'))
+      .sort()
+      .reverse()
+      .map(f => path.join(DATA_DIR, f));
+  } catch { return []; }
 }
+
+function tryLoad() {
+  const candidates = [SAVE_FILE, ...backupFiles()];
+  for (const file of candidates) {
+    if (!fs.existsSync(file)) continue;
+    try {
+      const s = restoreSim(JSON.parse(fs.readFileSync(file, 'utf8')));
+      const label = file === SAVE_FILE ? 'save' : `cadangan ${path.basename(file)}`;
+      console.log(`💾 ${label} dimuat — hari ${s.world.day}, ${s.npcs.length} warga, seed ${s.seed}`);
+      s.log('💾 Desa bangun kembali dari lelap server', 'info');
+      return s;
+    } catch (e) {
+      console.error(`⚠️ Gagal muat ${path.basename(file)}: ${e.message} — coba cadangan berikutnya...`);
+    }
+  }
+  return null;
+}
+
+let sim = tryLoad();
 if (!sim) {
   sim = new Sim((Math.random() * 1e9) | 0);
   console.log(`🌍 Dunia baru, seed ${sim.seed}`);
@@ -73,6 +95,21 @@ function save() {
   }
 }
 setInterval(save, AUTOSAVE_MS);
+
+// cadangan berlapis — kalau save utama korup (listrik mati pas nulis,
+// disk penuh, dsb.), desa masih bisa diselamatkan dari sini
+function backup() {
+  try {
+    if (!fs.existsSync(SAVE_FILE)) return;
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    fs.copyFileSync(SAVE_FILE, path.join(DATA_DIR, `backup-${stamp}.json`));
+    const old = backupFiles().slice(BACKUP_KEEP);
+    for (const f of old) fs.unlinkSync(f);
+  } catch (e) {
+    console.error('⚠️ Backup gagal:', e.message);
+  }
+}
+setInterval(backup, BACKUP_EVERY_MS);
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, () => {
     console.log(`\n💾 ${sig} — menyimpan desa lalu pamit...`);
