@@ -194,6 +194,7 @@ export class NPC {
     if (world.passable(nx, ny)) {
       this.x = nx; this.y = ny;
       this.blockedTicks = 0;
+      world.tread(nx, ny);   // rumput terinjak → lama-lama jadi jalan setapak
     } else {
       this.blockedTicks++;
       if (this.blockedTicks > 6) this.repath = 0; // paksa hitung ulang

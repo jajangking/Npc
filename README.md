@@ -2,6 +2,9 @@
 
 Simulasi dunia desa fantasi berisi NPC yang **belajar, beradaptasi, dan berevolusi secara organik** — tanpa satu pun perilaku yang di-script. Semua drama (cinta, paceklik, trauma, tradisi, dinasti keluarga) muncul sendiri dari interaksi sistem.
 
+![Siang hari](preview_day.png)
+![Malam hari](preview_night.png)
+
 ## Menjalankan
 
 ```bash
@@ -53,6 +56,13 @@ Siang-malam, 4 musim, sumber daya habis & tumbuh lagi (hutan bisa gundul permane
 | `src/world.js` | Dunia: terrain prosedural, musim, regrowth, A* |
 | `src/social.js` | Gosip, relasi, meme budaya |
 | `src/economy.js` | Pasar supply/demand |
-| `src/render.js`, `src/ui.js`, `src/main.js` | Canvas, inspektor NPC, loop |
+| `src/sprites.js` | Tileset pixel-art digambar prosedural (gaya TheoTown) |
+| `src/render.js`, `src/ui.js`, `src/main.js` | Canvas depth-sorted, inspektor NPC, loop |
+
+### Detail visual
+- **Pseudo-depth ala TheoTown**: pohon, rumah, lapak pasar "berdiri" lebih tinggi dari tile-nya dan diurut berdasarkan kedalaman (painter's algorithm)
+- **Jalan setapak organik**: rumput yang sering diinjak NPC perlahan jadi jalan tanah — rute populer desa tergambar sendiri di peta, dan kembali berumput kalau ditinggalkan
+- **Siklus cahaya**: fajar/senja oranye, malam biru gelap dengan jendela rumah menyala & cahaya hangat pasar
+- **Animasi**: air beriak, langkah kaki NPC, asap cerobong, gandum tumbuh 4 tahap, kepadatan kanopi pohon mengikuti sisa kayunya
 
 Setiap dunia memakai seed acak — tiap kali tombol **🌍 Dunia Baru** ditekan, sejarah yang sama sekali berbeda akan tertulis.

@@ -2,7 +2,7 @@ import { clamp } from './rng.js';
 
 // ====== Konstanta dunia ======
 export const W = 64, H = 46;
-export const TILE = 13;
+export const TILE = 16;
 export const DAY = 900;                 // tick per hari
 export const SEASON_DAYS = 6;           // hari per musim
 export const SEASONS = ['Semi 🌸', 'Panas ☀️', 'Gugur 🍂', 'Dingin ❄️'];
@@ -17,6 +17,7 @@ export class World {
     this.rng = rng;
     this.tick = 0;
     this.tiles = new Array(W * H);
+    this.traffic = new Float32Array(W * H);   // jejak kaki → jalan setapak organik
     for (let i = 0; i < W * H; i++) this.tiles[i] = { type: T.GRASS };
     this.generate();
   }
@@ -138,6 +139,10 @@ export class World {
   // ====== Dinamika alam per tick ======
   step() {
     this.tick++;
+    // jejak kaki memudar perlahan — jalan yang tak dipakai kembali berumput
+    if (this.tick % 600 === 0) {
+      for (let i = 0; i < this.traffic.length; i++) this.traffic[i] *= 0.965;
+    }
     // regrowth: tiap semak/hutan dicek tiap tick dengan peluang kecil
     if (!this.bushList) {
       this.bushList = this.tiles.filter(t => t.type === T.BUSH);
@@ -165,6 +170,13 @@ export class World {
   registerFarm(tile) {
     if (!this.farmList) this.farmList = [];
     if (!this.farmList.includes(tile)) this.farmList.push(tile);
+  }
+
+  tread(x, y) {
+    x = Math.round(x); y = Math.round(y);
+    if (!this.inBounds(x, y)) return;
+    const i = y * W + x;
+    this.traffic[i] = Math.min(9, this.traffic[i] + 0.012);
   }
 
   // ====== A* pathfinding (grid kecil, murah) ======
