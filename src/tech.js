@@ -37,19 +37,39 @@ export const TECHS = [
     req: { konstruksi: 70, dagang: 11 }, pop: 16, after: ['jalan_batu', 'rumah_besar'],
     desc: 'malam tak lagi gelap gulita — serigala enggan mendekati cahaya',
   },
+  {
+    id: 'pandai_besi', name: 'Pandai Besi', emoji: '🔨', skill: 'kayu',
+    req: { kayu: 70, konstruksi: 85 }, pop: 18, after: ['rumah_besar'],
+    desc: 'api tempa menyala! perkakas besi membuat kerja jauh lebih efisien',
+  },
+  {
+    id: 'menara_jaga', name: 'Menara Jaga', emoji: '🗼', skill: 'kayu',
+    req: { kayu: 60, konstruksi: 75 }, pop: 15, after: ['jalan_batu'],
+    cond: (sim) => (sim.wolfAttacks || 0) >= 3,
+    desc: 'luka-luka lama serigala melahirkan tekad: desa harus punya mata yang berjaga',
+  },
+  {
+    id: 'candi', name: 'Candi Agung', emoji: '🛕', skill: 'kayu',
+    req: { konstruksi: 130, dagang: 40, tani: 90 }, pop: 20, after: ['pandai_besi'],
+    cond: (sim) => !!sim.leader,
+    desc: 'di bawah pimpinan kepala desa, warga bermimpi membangun candi — penanda zaman keemasan',
+  },
 ];
 
 export function eraName(nTech) {
   if (nTech === 0) return 'Dusun Perintis';
   if (nTech <= 2) return 'Desa Berkembang';
   if (nTech <= 4) return 'Desa Maju';
-  return 'Kota Kecil';
+  if (nTech <= 6) return 'Kota Kecil';
+  if (nTech <= 8) return 'Kota Makmur';
+  return 'Era Keemasan 👑';
 }
 
 export function checkDiscoveries(sim) {
   for (const t of TECHS) {
     if (sim.techs.has(t.id)) continue;
     if ((t.after || []).some((a) => !sim.techs.has(a))) continue;
+    if (t.cond && !t.cond(sim)) continue;
     if (sim.npcs.length < (t.pop || 0)) continue;
     if (Object.entries(t.req).some(([k, v]) => sim.know[k] < v)) continue;
 

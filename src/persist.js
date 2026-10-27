@@ -40,7 +40,7 @@ export function serializeSim(sim) {
     traits: n.traits, skills: n.skills, inv: n.inv,
     spots: n.spots, dangers: n.dangers, lifeEvents: n.lifeEvents.slice(-20),
     opinions: [...n.opinions.entries()],
-    memes: [...n.memes], q: n.q, cart: n.cart,
+    memes: [...n.memes], q: n.q, cart: n.cart, tools: n.tools || false,
     partner: n.partner ? n.partner.id : null,
     parents: n.parents ? n.parents.map(p => p ? p.id : null) : null,
     children: n.children.map(c => c.id),
@@ -80,6 +80,9 @@ export function serializeSim(sim) {
     park: sim.park, pier: sim.pier,
     school: sim.school, hall: sim.hall, pendopo: sim.pendopo,
     pendopoMeme: sim.pendopoMeme, leader: sim.leader,
+    smithy: sim.smithy, tower: sim.tower, candi: sim.candi,
+    candiSite: sim.candiSite, candiProgress: sim.candiProgress,
+    wolfAttacks: sim.wolfAttacks,
     festivalToday: sim.festivalToday, festivalActive: sim.festivalActive,
   };
 }
@@ -129,7 +132,7 @@ export function restoreSim(data) {
     n.spots = d.spots; n.dangers = d.dangers; n.lifeEvents = d.lifeEvents;
     n.opinions = new Map(d.opinions);
     n.memes = new Set(d.memes);
-    n.q = d.q; n.cart = d.cart;
+    n.q = d.q; n.cart = d.cart; n.tools = d.tools || false;
     n.home = d.home;
     n.thought = d.thought || 'kembali dari lelap';
     n.children = []; n.partner = null; n.parents = null;
@@ -172,6 +175,13 @@ export function restoreSim(data) {
   sim.park = data.park; sim.pier = data.pier;
   sim.school = data.school; sim.hall = data.hall; sim.pendopo = data.pendopo;
   sim.pendopoMeme = data.pendopoMeme; sim.leader = data.leader;
+  // field era lanjut — save lama tetap kompatibel lewat default
+  sim.smithy = data.smithy ?? null;
+  sim.tower = data.tower ?? null;
+  sim.candi = data.candi ?? null;
+  sim.candiSite = data.candiSite ?? null;
+  sim.candiProgress = data.candiProgress ?? 0;
+  sim.wolfAttacks = data.wolfAttacks ?? 0;
   sim.festivalToday = data.festivalToday;
   sim.festivalActive = data.festivalActive;
 

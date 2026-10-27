@@ -66,6 +66,7 @@ export class NPC {
 
     // ---- Keluarga & properti ----
     this.cart = false;      // gerobak pribadi (teknologi)
+    this.tools = false;     // perkakas besi tempaan (teknologi pandai besi)
     this.partner = null;
     this.parents = opts.parents || null;
     this.children = [];

@@ -367,6 +367,62 @@ export function buildSprites() {
     px(g, 15, 0, '#e8c84a', 2, 3); // mustaka emas
   });
 
+  // bengkel pandai besi: dinding gelap, cerobong bata, bara menyala
+  S.smithy = building({ wallH: 13, roofPeak: 8, wall: '#6e5a48', roof: '#4a4038',
+    decorate: (g, rH) => {
+      poly(g, [[19, rH + 17], [25, rH + 14], [25, rH + 23], [19, rH + 26]], '#2e2620'); // pintu lebar
+      px(g, 21, rH + 19, '#ff8c3a', 3, 3);  // bara tempa menyala
+      px(g, 22, rH + 20, '#ffd871', 1, 1);
+      poly(g, [[4, rH + 12], [8, rH + 14], [8, rH + 18], [4, rH + 16]], '#8a7a66');
+      // cerobong bata
+      px(g, 6, rH - 10, '#8a4a38', 4, 12);
+      px(g, 5, rH - 11, '#6e3a2c', 6, 2);
+    } });
+
+  // menara jaga: tinggi menjulang, gardu pandang beratap
+  S.tower = mk(IW, 54, (g) => {
+    const base = 38;
+    // kaki batu
+    poly(g, [[16, base], [4, base - 6], [4, base + 2], [16, base + 8]], shade('#8a8276', 0.68));
+    poly(g, [[16, base], [28, base - 6], [28, base + 2], [16, base + 8]], shade('#8a8276', 0.95));
+    // badan menara kayu (dua sisi)
+    poly(g, [[16, base - 24], [7, base - 19], [7, base - 4], [16, base + 1]], shade('#7a5c3a', 0.68));
+    poly(g, [[16, base - 24], [25, base - 19], [25, base - 4], [16, base + 1]], shade('#7a5c3a', 0.95));
+    // palang silang
+    px(g, 8, base - 14, '#5a4028', 7, 1); px(g, 17, base - 14, '#4a3420', 7, 1);
+    // gardu pandang
+    poly(g, [[16, base - 30], [4, base - 24], [4, base - 20], [16, base - 26]], shade('#9a7a50', 0.7));
+    poly(g, [[16, base - 30], [28, base - 24], [28, base - 20], [16, base - 26]], '#9a7a50');
+    px(g, 10, base - 27, '#2e2620', 3, 4); px(g, 19, base - 27, '#2e2620', 3, 4); // jendela jaga
+    // atap kerucut
+    poly(g, [[16, base - 40], [3, base - 27], [16, base - 29]], shade('#a8453a', 0.72));
+    poly(g, [[16, base - 40], [16, base - 29], [29, base - 27]], '#a8453a');
+    px(g, 15, base - 42, '#e8c84a', 2, 3); // puncak emas
+  });
+
+  // candi agung: batu andesit bertingkat, mustaka emas
+  S.candi = mk(IW, 48, (g) => {
+    const fy = 32;
+    // kaki candi (tingkat 1, batu gelap)
+    poly(g, [[16, fy - 4], [1, fy + 3.5], [1, fy + 9], [16, fy + 16]], shade('#5e5a52', 0.68));
+    poly(g, [[16, fy - 4], [31, fy + 3.5], [31, fy + 9], [16, fy + 16]], shade('#5e5a52', 0.95));
+    // tubuh candi (tingkat 2)
+    poly(g, [[16, fy - 14], [5, fy - 8.5], [5, fy + 1], [16, fy + 6]], shade('#6e6a60', 0.68));
+    poly(g, [[16, fy - 14], [27, fy - 8.5], [27, fy + 1], [16, fy + 6]], shade('#6e6a60', 0.95));
+    // relung arca & pintu
+    px(g, 10, fy - 6, '#2e2a26', 3, 5);
+    px(g, 19, fy - 6, '#2e2a26', 3, 5);
+    poly(g, [[14, fy + 2], [18, fy], [18, fy + 8], [14, fy + 10]], '#1e1a16'); // gerbang
+    // atap meru (tingkat 3, dua lapis)
+    poly(g, [[16, fy - 24], [7, fy - 15], [16, fy - 11]], shade('#4e4a44', 0.7));
+    poly(g, [[16, fy - 24], [16, fy - 11], [25, fy - 15]], '#4e4a44');
+    poly(g, [[16, fy - 30], [11, fy - 22], [16, fy - 19]], shade('#5e5a52', 0.72));
+    poly(g, [[16, fy - 30], [16, fy - 19], [21, fy - 22]], '#5e5a52');
+    // mustaka emas
+    px(g, 15, fy - 33, '#e8c84a', 2, 4);
+    px(g, 15.5, fy - 34, '#ffd871', 1, 1);
+  });
+
   S.lamp = mk(10, 26, (g) => {
     px(g, 4, 6, '#3a332a', 2, 18);
     px(g, 3, 23, '#2e2922', 4, 2);

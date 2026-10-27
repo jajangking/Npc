@@ -120,7 +120,7 @@ export const ACTIONS = {
         npc.thought = 'semaknya kosong... harus cari tempat lain';
         return { done: true, reward: 0.25 };
       }
-      const got = Math.min(tile.berries, 2 + Math.round(npc.skills.ramu * 3 + npc.rng.rand()) + (npc.cart ? 1 : 0));
+      const got = Math.min(tile.berries, 2 + Math.round(npc.skills.ramu * 3 + npc.rng.rand()) + (npc.cart ? 1 : 0) + (npc.tools ? 1 : 0));
       tile.berries -= got;
       npc.inv.food += got;
       npc.skills.ramu = clamp(npc.skills.ramu + 0.01, 0, 1);
@@ -155,7 +155,7 @@ export const ACTIONS = {
       }
       npc.thought = 'memancing dengan sabar...';
       npc.action.t++;
-      const pCatch = (0.013 + npc.skills.pancing * 0.03) * (sim.world.isWinter ? 0.45 : 1);
+      const pCatch = (0.013 + npc.skills.pancing * 0.03) * (sim.world.isWinter ? 0.45 : 1) * (npc.tools ? 1.3 : 1);
       if (npc.rng.chance(pCatch)) {
         npc.action.got++;
         npc.inv.food++;
@@ -221,7 +221,7 @@ export const ACTIONS = {
       }
       const f = npc.farm;
       if (f.planted && f.growth >= 100) {
-        const yield_ = 6 + Math.round(npc.skills.tani * 8) + (npc.cart ? 1 : 0);
+        const yield_ = 6 + Math.round(npc.skills.tani * 8) + (npc.cart ? 1 : 0) + (npc.tools ? 2 : 0);
         npc.inv.food += yield_;
         f.planted = false; f.growth = 0;
         npc.skills.tani = clamp(npc.skills.tani + 0.03, 0, 1);
@@ -279,7 +279,7 @@ export const ACTIONS = {
         npc.thought = 'pohon di sini sudah habis ditebang';
         return { done: true, reward: 0.25 };
       }
-      const got = Math.min(tile.wood, 1 + Math.round(npc.skills.kayu * 2.5) + (npc.cart ? 1 : 0));
+      const got = Math.min(tile.wood, 1 + Math.round(npc.skills.kayu * 2.5) + (npc.cart ? 1 : 0) + (npc.tools ? 1 : 0));
       tile.wood -= got;
       if (tile.wood <= 0) { tile.type = T.GRASS; delete tile.wood; }  // hutan bisa GUNDUL beneran
       npc.inv.wood += got;
@@ -384,6 +384,174 @@ export const ACTIONS = {
       sim.log(`🔑 ${npc.name} menempati rumah kosong dan memperbaikinya`, 'econ');
       npc.logLife(sim.world.day, 'menempati rumah kosong');
       return { done: true, reward: 2.0 };
+    },
+  },
+
+  // ---------- BENGKEL PANDAI BESI ----------
+  bangunBengkel: {
+    emoji: '🔨',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.smithy || !sim.techs.has('pandai_besi') || npc.inv.wood < 10) return 0;
+      return 1.6 * (0.3 + npc.skills.kayu) * (0.4 + npc.traits.rajin) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.civicSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y; npc.action.t = 0;
+      npc.thought = 'akan kubangun bengkel tempa milikku';
+    },
+    step(npc, sim) {
+      if (sim.smithy) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 220) { npc.thought = 'menyusun tungku dan paron...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.GRASS) return { done: true, reward: 0.4 };
+      t.type = T.SMITHY;
+      npc.inv.wood -= 10;
+      sim.smithy = { x: npc.action.tx, y: npc.action.ty, owner: npc.id };
+      sim.know.konstruksi += 5; sim.know.kayu += 3;
+      sim.log(`🔨 ${npc.name} membuka BENGKEL PANDAI BESI — dentang paron menggema!`, 'tech');
+      npc.logLife(sim.world.day, 'membuka bengkel pandai besi');
+      return { done: true, reward: 2.6 };
+    },
+  },
+
+  // ---------- MENEMPA PERKAKAS ----------
+  tempa: {
+    emoji: '⚒️',
+    score(npc, sim) {
+      if (!npc.isAdult || npc.tools || !sim.smithy) return 0;
+      if (npc.inv.coins < 6 || npc.inv.wood < 2) return 0;
+      // makin terampil kerjanya, makin kepengen perkakas bagus
+      const sk = Math.max(npc.skills.tani, npc.skills.kayu, npc.skills.ramu, npc.skills.pancing);
+      return (1.0 + sk * 2.6) * (0.4 + npc.traits.rajin) * npc.qVal('tempa') * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      npc.action.tx = sim.smithy.x; npc.action.ty = sim.smithy.y; npc.action.t = 0;
+      npc.thought = 'mau pesan perkakas besi di bengkel';
+    },
+    step(npc, sim) {
+      if (!sim.smithy || npc.tools) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 45) { npc.thought = 'menunggu tempaan selesai... dentang! dentang!'; return null; }
+      npc.inv.coins -= 6; npc.inv.wood -= 2;
+      npc.tools = true;
+      const owner = sim.npcs.find(o => o.id === sim.smithy.owner && o.alive);
+      if (owner) owner.inv.coins += 5;
+      sim.know.kayu += 1;
+      sim.log(`⚒️ ${npc.name} kini punya perkakas besi — kerjanya makin cekatan`, 'econ');
+      npc.logLife(sim.world.day, 'membeli perkakas besi tempaan');
+      return { done: true, reward: 1.9 };
+    },
+  },
+
+  // ---------- MENARA JAGA ----------
+  bangunMenara: {
+    emoji: '🗼',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.tower || !sim.techs.has('menara_jaga') || npc.inv.wood < 12) return 0;
+      // yang paling terdorong justru yang menyimpan trauma (dangers) — organik!
+      const trauma = Math.min(1.5, npc.dangers.reduce((s, d) => s + d.mag, 0) * 0.4);
+      return (1.2 + trauma) * (0.3 + npc.traits.berani) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.civicSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y; npc.action.t = 0;
+      npc.thought = 'tak akan kubiarkan serigala melukai warga lagi';
+    },
+    step(npc, sim) {
+      if (sim.tower) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 230) { npc.thought = 'menyusun rangka menara tinggi-tinggi...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.GRASS) return { done: true, reward: 0.4 };
+      t.type = T.TOWER;
+      npc.inv.wood -= 12;
+      sim.tower = { x: npc.action.tx, y: npc.action.ty };
+      sim.know.konstruksi += 6;
+      sim.log(`🗼 ${npc.name} mendirikan MENARA JAGA — serigala kini berpikir dua kali!`, 'tech');
+      npc.logLife(sim.world.day, 'mendirikan menara jaga desa');
+      return { done: true, reward: 2.6 };
+    },
+  },
+
+  // ---------- GOTONG ROYONG CANDI ----------
+  bangunCandi: {
+    emoji: '🛕',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.candi || !sim.techs.has('candi') || npc.inv.wood < 6) return 0;
+      // proyek kebanggaan bersama — penganut budaya & yang rajin paling terpanggil
+      return 1.7 * (0.4 + npc.traits.rajin) * (0.6 + npc.memes.size * 0.15) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      if (!sim.candiSite) sim.candiSite = sim.civicSite();
+      if (!sim.candiSite) return false;
+      npc.action.tx = sim.candiSite.x; npc.action.ty = sim.candiSite.y; npc.action.t = 0;
+      npc.thought = 'ikut gotong royong membangun candi!';
+    },
+    step(npc, sim) {
+      if (sim.candi) return { done: true, reward: 0.5 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 200) { npc.thought = `memahat batu candi... (tahap ${sim.candiProgress + 1}/3)`; return null; }
+      npc.inv.wood -= 6;
+      sim.candiProgress++;
+      sim.know.konstruksi += 6;
+      npc.logLife(sim.world.day, `menyumbang tenaga pembangunan candi (tahap ${sim.candiProgress})`);
+      if (sim.candiProgress < 3) {
+        sim.log(`🛕 Pembangunan candi tahap ${sim.candiProgress}/3 selesai — gotong royong berlanjut`, 'tech');
+        return { done: true, reward: 2.0 };
+      }
+      const t = sim.world.at(sim.candiSite.x, sim.candiSite.y);
+      if (t && t.type === T.GRASS) t.type = T.CANDI;
+      sim.candi = { ...sim.candiSite };
+      sim.log(`🛕 CANDI AGUNG BERDIRI! Desa memasuki ERA KEEMASAN — ${npc.name} memasang batu puncaknya`, 'tech');
+      npc.logLife(sim.world.day, 'memasang batu puncak Candi Agung');
+      // seluruh desa berbangga — relasi antarwarga menghangat
+      for (const a of sim.npcs) {
+        a.needs.senang = Math.min(100, a.needs.senang + 15);
+      }
+      return { done: true, reward: 3.0 };
+    },
+  },
+
+  // ---------- SEMBAHYANG DI CANDI ----------
+  keCandi: {
+    emoji: '🕯️',
+    score(npc, sim) {
+      if (!sim.candi) return 0;
+      const butuhTenang = npc.dangers.length ? 1.6 : 0;      // trauma mencari kedamaian
+      const butuhSenang = (100 - npc.needs.senang) * 0.028;
+      return (butuhTenang + butuhSenang) * (0.5 + npc.traits.supel * 0.4) * npc.qVal('keCandi');
+    },
+    start(npc, sim) {
+      npc.action.tx = sim.candi.x; npc.action.ty = sim.candi.y; npc.action.t = 0;
+      npc.thought = 'hati gelisah... aku mau bersembahyang di candi';
+    },
+    step(npc, sim) {
+      if (!sim.candi) return { done: true, reward: 0.3 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 50) { npc.thought = 'khusyuk bersembahyang...'; return null; }
+      npc.needs.senang = Math.min(100, npc.needs.senang + 16);
+      // kedamaian batin: trauma lama perlahan sembuh
+      for (const d of npc.dangers) d.mag *= 0.55;
+      npc.dangers = npc.dangers.filter(d => d.mag > 0.06);
+      return { done: true, reward: 1.5 };
     },
   },
 

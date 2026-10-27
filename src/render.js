@@ -127,6 +127,9 @@ export function render(ctx, sim, selected) {
       case T.SCHOOL: put(x, y, () => { shadowE(ctx, sx + 16, sy + 10, 13, 5); ctx.drawImage(S.school, sx, sy - (S.school.height - IH)); }); break;
       case T.HALL: put(x, y, () => { shadowE(ctx, sx + 16, sy + 10, 14, 5); ctx.drawImage(S.hall, sx, sy - (S.hall.height - IH)); }); break;
       case T.PENDOPO: put(x, y, () => { shadowE(ctx, sx + 16, sy + 10, 14, 5); ctx.drawImage(S.pendopo, sx, sy - (S.pendopo.height - IH)); }); break;
+      case T.SMITHY: put(x, y, () => { shadowE(ctx, sx + 16, sy + 10, 13, 5); ctx.drawImage(S.smithy, sx, sy - (S.smithy.height - IH)); drawSmoke(ctx, sx + 7, sy - (S.smithy.height - IH), tick, x + 3); }); break;
+      case T.TOWER: put(x, y, () => { shadowE(ctx, sx + 16, sy + 10, 11, 4.5); ctx.drawImage(S.tower, sx, sy - (S.tower.height - IH)); }); break;
+      case T.CANDI: put(x, y, () => { shadowE(ctx, sx + 16, sy + 11, 15, 5.5); ctx.drawImage(S.candi, sx, sy - (S.candi.height - IH)); }); break;
       case T.ROAD:
         if (t.lamp) put(x, y, () => ctx.drawImage(S.lamp, sx + 11, sy - 14));
         break;
@@ -186,7 +189,8 @@ export function render(ctx, sim, selected) {
       if (t.type === T.HOUSE && (t.emptyDays || 0) >= 2) continue; // rumah kosong gelap
       const glow = t.type === T.HOUSE || t.type === T.MARKET || t.type === T.GRANARY ||
         t.type === T.WARUNG || t.type === T.KEDAI || t.type === T.SCHOOL ||
-        t.type === T.HALL || t.type === T.PENDOPO || isLamp;
+        t.type === T.HALL || t.type === T.PENDOPO || t.type === T.SMITHY ||
+        t.type === T.TOWER || t.type === T.CANDI || isLamp;
       if (!glow) continue;
       const cx = isoX(x, y) + 16, cy = isoY(x, y) + 4 - (isLamp ? 8 : 0);
       const rad = isLamp ? 42 : 34;

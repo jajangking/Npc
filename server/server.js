@@ -189,7 +189,7 @@ function npcDetail(id) {
       partnerName: n.partner?.alive ? n.partner.name : null,
       home: !!n.home, farm: !!n.farm, thought: n.thought,
       needs: n.needs, traits: n.traits, skills: n.skills,
-      inv: n.inv, cart: n.cart, q: n.q,
+      inv: n.inv, cart: n.cart, tools: n.tools, q: n.q,
       spots: n.spots.map(s => ({ kind: s.kind, est: s.est })),
       dangers: n.dangers.map(d => ({ x: d.x, y: d.y, mag: d.mag })),
       opinions: [...n.opinions.entries()].map(([oid, o]) => [oid, { aff: o.aff }]),

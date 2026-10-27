@@ -17,6 +17,9 @@ const ACTION_LABEL = {
   bangunDermaga: 'Membangun dermaga', piknik: 'Piknik / wisata', main: 'Bermain', festival: 'Berpesta festival!',
   bangunSekolah: 'Membangun sekolah', belajar: 'Bersekolah', bangunBalai: 'Membangun balai desa',
   bangunPendopo: 'Membangun pendopo', kePendopo: 'Berkunjung ke pendopo',
+  bangunBengkel: 'Membangun bengkel besi', tempa: 'Menempa perkakas',
+  bangunMenara: 'Mendirikan menara jaga', bangunCandi: 'Gotong royong candi',
+  keCandi: 'Bersembahyang di candi',
 };
 
 function esc(s) { return String(s).replace(/</g, '&lt;'); }
@@ -62,6 +65,7 @@ export function renderInspector(el, sim, npc) {
       <span class="tag">🪵 ${Math.round(npc.inv.wood)} kayu</span>
       <span class="tag">🪙 ${Math.round(npc.inv.coins * 10) / 10} koin</span>
       ${npc.cart ? '<span class="tag">🛞 gerobak</span>' : ''}
+      ${npc.tools ? '<span class="tag">⚒️ perkakas besi</span>' : ''}
       ${sim.npcWarung(npc) ? '<span class="tag">🍜 pemilik warung</span>' : ''}
       ${sim.kedai && sim.kedai.owner === npc.id ? '<span class="tag">🍵 pemilik kedai</span>' : ''}
       ${sim.leader === npc.id ? '<span class="tag" style="border-color:#e8c84a;color:#e8c84a">🎖️ KEPALA DESA</span>' : ''}

@@ -43,6 +43,12 @@ export class Sim {
     this.pendopo = null;     // {x, y} pendopo budaya
     this.pendopoMeme = null; // budaya yang diabadikan
     this.leader = null;      // id kepala desa terpilih
+    this.smithy = null;      // {x, y, owner} bengkel pandai besi
+    this.tower = null;       // {x, y} menara jaga
+    this.candi = null;       // {x, y} candi agung
+    this.candiSite = null;   // lokasi pembangunan candi (gotong royong)
+    this.candiProgress = 0;  // sesi kontribusi pembangunan candi
+    this.wolfAttacks = 0;    // trauma kolektif — pemicu ide menara jaga
     this.festivalToday = false;
     this.festivalActive = false;
 
@@ -513,6 +519,10 @@ export class Sim {
           this.lamps.some(l => dist(prey.x, prey.y, l.x, l.y) < 3.2)) {
         prey = null;
       }
+      // menara jaga: mata desa yang berjaga — serigala tak berani mendekat
+      if (prey && this.tower && dist(prey.x, prey.y, this.tower.x, this.tower.y) < 6) {
+        prey = null;
+      }
       if (prey) {
         const d = dist(prey.x, prey.y, wolf.x, wolf.y);
         const dx = (prey.x - wolf.x) / (d || 1), dy = (prey.y - wolf.y) / (d || 1);
@@ -523,6 +533,7 @@ export class Sim {
           prey.needs.energy = clamp(prey.needs.energy - 35, 0, 100);
           prey.addDanger(wolf.x, wolf.y, 2.2);
           prey.logLife(this.world.day, 'diserang serigala dan selamat');
+          this.wolfAttacks++; // luka kolektif desa — suatu hari melahirkan menara jaga
           this.log(`🐺 ${prey.name} diserang serigala!`, 'danger');
           // teriakan → tetangga dekat ikut trauma (tanpa digigit)
           for (const n of this.npcs) {
