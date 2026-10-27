@@ -51,6 +51,11 @@ export function render(ctx, sim, selected) {
         ctx.drawImage(S.water[wf], px, py);
         ctx.drawImage(S.bridge, px, py);
         break;
+      case T.PARK: ctx.drawImage(S.park, px, py); break;
+      case T.PIER:
+        ctx.drawImage(S.water[wf], px, py);
+        ctx.drawImage(S.pier, px, py);
+        break;
       default: {
         ctx.drawImage(S.grass[Math.floor(hash(x, y) * 4)], px, py);
         // jalan setapak organik dari lalu lintas kaki
@@ -85,6 +90,16 @@ export function render(ctx, sim, selected) {
     else if (t.type === T.HOUSE) objs.push({ y: y + 0.95, draw: () => drawHouse(ctx, w, x, y, tick, t) });
     else if (t.type === T.GRANARY) objs.push({ y: y + 0.97, draw: () => drawGranary(ctx, x, y) });
     else if (t.type === T.ROAD && t.lamp) objs.push({ y: y + 0.6, draw: () => drawLamp(ctx, x, y) });
+    else if (t.type === T.WARUNG) objs.push({ y: y + 0.95, draw: () => drawShop(ctx, S.warung, x, y) });
+    else if (t.type === T.KEDAI) objs.push({ y: y + 0.95, draw: () => drawShop(ctx, S.kedai, x, y) });
+  }
+  // bangku taman di pojok taman
+  if (sim.park) {
+    objs.push({ y: sim.park.y + 0.7, draw: () => ctx.drawImage(S.bench, sim.park.x * TILE + 3, sim.park.y * TILE + 2) });
+  }
+  // umbul-umbul festival di alun-alun
+  if (sim.festivalActive) {
+    objs.push({ y: m.y - 0.5, draw: () => drawFestival(ctx, m, tick) });
   }
   objs.push({ y: m.y + 1.95, draw: () => drawStall(ctx, m) });
   for (const n of sim.npcs) objs.push({ y: n.y + 0.5, draw: () => drawNpc(ctx, n, tick, n === selected) });
@@ -131,7 +146,8 @@ export function render(ctx, sim, selected) {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const t = w.tiles[y * W + x];
       const isLamp = t.type === T.ROAD && t.lamp;
-      if (t.type === T.HOUSE || t.type === T.MARKET || t.type === T.GRANARY || isLamp) {
+      if (t.type === T.HOUSE || t.type === T.MARKET || t.type === T.GRANARY ||
+          t.type === T.WARUNG || t.type === T.KEDAI || isLamp) {
         const cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2 - (isLamp ? 4 : 0);
         const rad = isLamp ? 38 : 30;
         const str = isLamp ? 0.45 : 0.33;
@@ -211,6 +227,37 @@ function drawGranary(ctx, x, y) {
 
 function drawLamp(ctx, x, y) {
   ctx.drawImage(S.lamp, x * TILE + 4, y * TILE - 6);
+}
+
+function drawShop(ctx, sprite, x, y) {
+  shadow(ctx, x * TILE + 8, y * TILE + TILE - 1, 9, 3);
+  ctx.drawImage(sprite, x * TILE - 1, y * TILE - 8);
+}
+
+function drawFestival(ctx, m, tick) {
+  const x0 = (m.x - 2) * TILE, x1 = (m.x + 4) * TILE;
+  const y = (m.y - 1.6) * TILE;
+  // tiang
+  ctx.fillStyle = '#6b4a2a';
+  ctx.fillRect(x0, y, 2, 26);
+  ctx.fillRect(x1, y, 2, 26);
+  // tali melengkung + bendera segitiga warna-warni
+  const COLS = ['#e74c3c', '#e8c84a', '#4a84c4', '#3fae86', '#d46a9e', '#e8923a'];
+  const n = 8;
+  ctx.strokeStyle = 'rgba(60,45,30,0.8)';
+  ctx.beginPath();
+  ctx.moveTo(x0 + 1, y + 2);
+  ctx.quadraticCurveTo((x0 + x1) / 2, y + 10, x1 + 1, y + 2);
+  ctx.stroke();
+  for (let i = 1; i < n; i++) {
+    const tpos = i / n;
+    const fx = x0 + (x1 - x0) * tpos;
+    const fy = y + 2 + Math.sin(tpos * Math.PI) * 7 + Math.sin(tick * 0.1 + i) * 0.8;
+    ctx.fillStyle = COLS[i % COLS.length];
+    ctx.beginPath();
+    ctx.moveTo(fx - 2, fy); ctx.lineTo(fx + 2, fy); ctx.lineTo(fx, fy + 5);
+    ctx.fill();
+  }
 }
 
 function drawStall(ctx, m) {

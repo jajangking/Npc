@@ -672,6 +672,381 @@ export const ACTIONS = {
     },
   },
 
+  // ========== KEHIDUPAN KOTA: usaha, kuliner, hiburan ==========
+
+  // ---------- MEMBUKA WARUNG (wirausaha!) ----------
+  bukaWarung: {
+    emoji: '🍜',
+    score(npc, sim) {
+      if (!npc.isAdult || npc.skills.dagang < 0.28 || npc.inv.coins < 16 || npc.inv.wood < 6) return 0;
+      if (sim.know.dagang < 5 || sim.npcWarung(npc)) return 0;
+      if (!sim.warungSite()) return 0;
+      return 1.6 * (0.4 + npc.skills.dagang) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.warungSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y;
+      npc.action.t = 0;
+      npc.thought = 'bermimpi punya warung sendiri';
+    },
+    step(npc, sim) {
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 160) { npc.thought = 'mendirikan warung...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.GRASS) return { done: true, reward: 0.4 };
+      t.type = T.WARUNG;
+      t.owner = npc.id; t.stok = 0; t.kas = 0;
+      t.bx = npc.action.tx; t.by = npc.action.ty;
+      sim.warungs.push(t);
+      npc.inv.coins -= 12; npc.inv.wood -= 6;
+      sim.know.dagang += 2;
+      sim.log(`🍜 ${npc.name} membuka warung makan!`, 'econ');
+      npc.logLife(sim.world.day, 'membuka warung sendiri');
+      return { done: true, reward: 2.2 };
+    },
+  },
+
+  // ---------- MENJAGA & MENYETOK WARUNG ----------
+  jagaWarung: {
+    emoji: '🍲',
+    score(npc, sim) {
+      const w = sim.npcWarung(npc);
+      if (!w) return 0;
+      let v = 0;
+      if (w.stok < 4 && npc.inv.food > 3) v = 1.4;        // perlu setok
+      if (w.kas > 6) v = Math.max(v, 1.1);                // ambil hasil jualan
+      return v * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const w = sim.npcWarung(npc);
+      if (!w) return false;
+      npc.action.tx = w.bx; npc.action.ty = w.by;
+      npc.action.t = 0;
+      npc.thought = 'mengurus warung';
+    },
+    step(npc, sim) {
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 50) { npc.thought = 'memasak & menata dagangan...'; return null; }
+      const w = sim.npcWarung(npc);
+      if (!w) return { done: true, reward: 0.3 };
+      const setor = Math.min(Math.max(0, npc.inv.food - 3), 8 - w.stok);
+      if (setor > 0) { npc.inv.food -= setor; w.stok += setor; }
+      let r = 0.7 + setor * 0.1;
+      if (w.kas > 0) {
+        npc.inv.coins += w.kas;
+        npc.thought = `warung laku ${Math.round(w.kas * 10) / 10} koin!`;
+        r += w.kas * 0.08;
+        w.kas = 0;
+        npc.skills.dagang = clamp(npc.skills.dagang + 0.01, 0, 1);
+      }
+      return { done: true, reward: r };
+    },
+  },
+
+  // ---------- MAKAN DI WARUNG ----------
+  makanWarung: {
+    emoji: '🍛',
+    score(npc, sim) {
+      const w = sim.stockedWarung();
+      if (!w || w.owner === npc.id) return 0;
+      const harga = Math.round(sim.market.prices.food * 14) / 10;
+      if (npc.inv.coins < harga || npc.needs.hunger > 58) return 0;
+      let v = 1.6 + (58 - npc.needs.hunger) * 0.07 + Math.max(0, 50 - npc.needs.senang) * 0.02;
+      if (npc.inv.food > 0) v *= 0.35;   // punya bekal sendiri → jajan cuma buat gaya
+      return v * (1.15 - npc.traits.rajin * 0.4);
+    },
+    start(npc, sim) {
+      const w = sim.stockedWarung();
+      if (!w) return false;
+      npc.action.w = w;
+      npc.action.t = 0;
+      npc.thought = 'perut lapar, jajan di warung ah';
+    },
+    step(npc, sim) {
+      const w = npc.action.w;
+      if (!w || w.type !== T.WARUNG) return { done: true, reward: 0.3 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(w.bx, w.by, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 35) { npc.thought = 'menyantap makanan warung...'; return null; }
+      if (w.stok <= 0) { npc.thought = 'yah, warungnya kehabisan...'; return { done: true, reward: 0.3 }; }
+      const harga = Math.round(sim.market.prices.food * 14) / 10;
+      if (npc.inv.coins < harga) return { done: true, reward: 0.3 };
+      npc.inv.coins -= harga;
+      w.kas += harga; w.stok--;
+      npc.needs.hunger = clamp(npc.needs.hunger + 45, 0, 100);
+      npc.needs.senang = clamp(npc.needs.senang + 12, 0, 100);
+      npc.needs.social = clamp(npc.needs.social + 8, 0, 100);
+      npc.thought = 'kenyang & puas, masakannya enak';
+      return { done: true, reward: 1.4 };
+    },
+  },
+
+  // ---------- MEMBUKA KEDAI ----------
+  bukaKedai: {
+    emoji: '🍵',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.kedai || npc.traits.supel < 0.5) return 0;
+      if (npc.inv.coins < 18 || npc.inv.wood < 8 || sim.npcs.length < 12) return 0;
+      return 1.5 * (0.4 + npc.traits.supel) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.kedaiSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y;
+      npc.action.t = 0;
+      npc.thought = 'desa ini butuh tempat nongkrong';
+    },
+    step(npc, sim) {
+      if (sim.kedai) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 180) { npc.thought = 'membangun kedai...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.GRASS) return { done: true, reward: 0.4 };
+      t.type = T.KEDAI;
+      t.owner = npc.id; t.bx = npc.action.tx; t.by = npc.action.ty;
+      sim.kedai = t;
+      npc.inv.coins -= 10; npc.inv.wood -= 8;
+      sim.log(`🍵 ${npc.name} membuka kedai teh — tempat nongkrong desa!`, 'econ');
+      npc.logLife(sim.world.day, 'membuka kedai teh');
+      return { done: true, reward: 2.2 };
+    },
+  },
+
+  // ---------- NONGKRONG DI KEDAI ----------
+  nongkrong: {
+    emoji: '☕',
+    score(npc, sim) {
+      if (!sim.kedai || !npc.isAdult || npc.inv.coins < 1) return 0;
+      const h = sim.world.hour;
+      if (h < 16.5 || h > 22.5) return 0;
+      return (70 - npc.needs.senang) * 0.045 * (0.45 + npc.traits.supel) * npc.qVal('nongkrong');
+    },
+    start(npc, sim) {
+      npc.action.t = 0;
+      npc.thought = 'sore-sore enaknya ngeteh di kedai';
+    },
+    step(npc, sim) {
+      const k = sim.kedai;
+      if (!k) return { done: true, reward: 0.3 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(k.bx, k.by, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      npc.action.t++;
+      npc.thought = 'ngobrol santai sambil ngeteh';
+      // kedai = sarang gosip: ngobrol dengan sesama pengunjung
+      if (npc.action.t % 35 === 0) {
+        const others = sim.npcs.filter(o => o !== npc && o.alive &&
+          dist(o.x, o.y, k.bx, k.by) < 2.2);
+        if (others.length) sim.conversation(npc, others[Math.floor(npc.rng.rand() * others.length)]);
+      }
+      if (npc.action.t > 95) {
+        npc.inv.coins -= 1;
+        const owner = sim.npcs.find(o => o.id === k.owner);
+        if (owner) owner.inv.coins += 1;
+        npc.needs.senang = clamp(npc.needs.senang + 24, 0, 100);
+        npc.needs.social = clamp(npc.needs.social + 20, 0, 100);
+        return { done: true, reward: 1.3 };
+      }
+      return null;
+    },
+  },
+
+  // ---------- MEMBANGUN TAMAN DESA ----------
+  bangunTaman: {
+    emoji: '🌳',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.park || sim.know.konstruksi < 25 || sim.npcs.length < 12) return 0;
+      if (npc.inv.wood < 4) return 0;
+      return 1.2 * (0.4 + npc.traits.rajin) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.parkSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y;
+      npc.action.t = 0;
+      npc.thought = 'desa butuh taman yang asri';
+    },
+    step(npc, sim) {
+      if (sim.park) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 170) { npc.thought = 'menanam bunga & menata taman...'; return null; }
+      for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
+        const t = sim.world.at(npc.action.tx + dx, npc.action.ty + dy);
+        if (t && t.type === T.GRASS) t.type = T.PARK;
+      }
+      npc.inv.wood -= 4;
+      sim.park = { x: npc.action.tx, y: npc.action.ty };
+      sim.know.konstruksi += 3;
+      sim.log(`🌳 ${npc.name} membangun taman desa yang asri!`, 'tech');
+      npc.logLife(sim.world.day, 'membangun taman desa');
+      return { done: true, reward: 2 };
+    },
+  },
+
+  // ---------- MEMBANGUN DERMAGA WISATA ----------
+  bangunDermaga: {
+    emoji: '🛥️',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.pier || sim.know.kayu < 25 || npc.inv.wood < 6) return 0;
+      if (!sim.pierSite()) return 0;
+      return 1.1 * (0.4 + npc.traits.penasaran) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.pierSite();
+      if (!s) return false;
+      npc.action.site = s;
+      npc.action.t = 0;
+      npc.thought = 'danau ini layak dinikmati dari dekat';
+    },
+    step(npc, sim) {
+      if (sim.pier) return { done: true, reward: 0.4 };
+      const s = npc.action.site;
+      if (dist(npc.x, npc.y, s.x, s.y) > 1.3) {
+        npc.moveToward(s.x, s.y, sim.world);
+        return null;
+      }
+      if (++npc.action.t < 190) { npc.thought = 'memancang papan dermaga...'; return null; }
+      const t = sim.world.at(s.x, s.y);
+      if (!t || t.type !== T.WATER) return { done: true, reward: 0.4 };
+      t.type = T.PIER;
+      npc.inv.wood -= 6;
+      sim.pier = { x: s.x, y: s.y };
+      sim.know.kayu += 2;
+      sim.log(`🛥️ ${npc.name} membangun dermaga wisata di danau!`, 'tech');
+      npc.logLife(sim.world.day, 'membangun dermaga danau');
+      return { done: true, reward: 2 };
+    },
+  },
+
+  // ---------- PIKNIK / WISATA ----------
+  piknik: {
+    emoji: '🧺',
+    score(npc, sim) {
+      if (!sim.park && !sim.pier) return 0;
+      if (sim.world.isNight) return 0;
+      return (60 - npc.needs.senang) * 0.042 * (0.4 + npc.traits.penasaran * 0.6) * npc.qVal('piknik');
+    },
+    start(npc, sim) {
+      // yang penasaran lebih suka dermaga (wisata), lainnya taman
+      const prefPier = sim.pier && (!sim.park || npc.traits.penasaran > 0.5);
+      npc.action.dest = prefPier ? sim.pier : sim.park;
+      npc.action.isPier = prefPier;
+      npc.action.t = 0;
+      npc.thought = prefPier ? 'jalan-jalan ke dermaga danau' : 'piknik ke taman';
+    },
+    step(npc, sim) {
+      const d = npc.action.dest;
+      if (!d) return { done: true, reward: 0.3 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(d.x, d.y, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      npc.action.t++;
+      npc.thought = npc.action.isPier ? 'memandangi danau... tenangnya' : 'menikmati harum bunga taman';
+      if (npc.action.t > 75) {
+        npc.needs.senang = clamp(npc.needs.senang + (npc.action.isPier ? 28 : 20), 0, 100);
+        return { done: true, reward: 1.2 };
+      }
+      return null;
+    },
+  },
+
+  // ---------- ANAK-ANAK BERMAIN ----------
+  main: {
+    emoji: '⚽',
+    score(npc, sim) {
+      if (npc.isAdult || sim.world.isNight) return 0;
+      return (80 - npc.needs.senang) * 0.055;
+    },
+    start(npc, sim) {
+      const kids = sim.npcs.filter(o => o !== npc && !o.isAdult && o.alive &&
+        dist(o.x, o.y, npc.x, npc.y) < 22);
+      npc.action.friend = kids.length ? kids[Math.floor(npc.rng.rand() * kids.length)] : null;
+      npc.action.t = 0;
+      npc.thought = npc.action.friend ? `main kejar-kejaran dengan ${npc.action.friend.name}` : 'bermain sendirian';
+    },
+    step(npc, sim) {
+      npc.action.t++;
+      const f = npc.action.friend;
+      if (f && f.alive) {
+        // kejar-kejaran: lari ke arah teman + zig-zag
+        const jx = f.x + npc.rng.range(-2, 2), jy = f.y + npc.rng.range(-2, 2);
+        npc.moveToward(jx, jy, sim.world, 1.15);
+        if (npc.action.t % 50 === 0) {
+          f.needs.senang = clamp(f.needs.senang + 8, 0, 100);
+          f.needs.social = clamp(f.needs.social + 6, 0, 100);
+        }
+      } else {
+        const base = sim.park || npc.home || { x: npc.x, y: npc.y };
+        npc.moveToward(base.x + npc.rng.range(-2.5, 2.5), base.y + npc.rng.range(-2.5, 2.5), sim.world);
+      }
+      if (npc.action.t > 130) {
+        npc.needs.senang = clamp(npc.needs.senang + 28, 0, 100);
+        npc.needs.social = clamp(npc.needs.social + 15, 0, 100);
+        return { done: true, reward: 1.4 };
+      }
+      return null;
+    },
+  },
+
+  // ---------- FESTIVAL DESA ----------
+  festival: {
+    emoji: '🎉',
+    score(npc, sim) {
+      return sim.festivalActive ? 5.5 : 0;
+    },
+    start(npc, sim) {
+      const m = sim.world.market;
+      npc.action.px = m.x + npc.rng.range(-2.5, 3);
+      npc.action.py = m.y + npc.rng.range(-2.5, 3);
+      npc.action.t = 0;
+      npc.thought = 'festival! ayo ke alun-alun!';
+    },
+    step(npc, sim) {
+      if (!sim.festivalActive) {
+        npc.thought = 'festival yang menyenangkan...';
+        return { done: true, reward: 1.8 };
+      }
+      npc.action.t++;
+      const m = sim.world.market;
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.px, npc.action.py, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      // menari: bergoyang di tempat
+      if (npc.action.t % 25 === 0) {
+        npc.action.px = m.x + npc.rng.range(-2.5, 3);
+        npc.action.py = m.y + npc.rng.range(-2.5, 3);
+        npc.action.arrived = false;
+      }
+      npc.thought = npc.memes.has('tarian_senja') ? 'menari tarian senja!' : 'berpesta di festival!';
+      npc.needs.senang = clamp(npc.needs.senang + 0.25, 0, 100);
+      npc.needs.social = clamp(npc.needs.social + 0.18, 0, 100);
+      // budaya & relasi menular deras saat pesta
+      if (npc.action.t % 60 === 0) {
+        const others = sim.npcs.filter(o => o !== npc && o.alive && dist(o.x, o.y, m.x, m.y) < 5);
+        if (others.length) sim.conversation(npc, others[Math.floor(npc.rng.rand() * others.length)]);
+      }
+      return null;
+    },
+  },
+
   // ---------- SANTAI ----------
   santai: {
     emoji: '🍃',

@@ -33,6 +33,14 @@ export class Sim {
     this.roadCount = 0;
     this.bridgeCount = 0;
 
+    // ---- Kehidupan kota: usaha & hiburan ----
+    this.warungs = [];       // tile WARUNG {owner, stok, kas, bx, by}
+    this.kedai = null;       // tile KEDAI {owner, bx, by}
+    this.park = null;        // {x, y} pusat taman
+    this.pier = null;        // {x, y} dermaga wisata
+    this.festivalToday = false;
+    this.festivalActive = false;
+
     // Penduduk awal
     const m = this.world.market;
     for (let i = 0; i < 14; i++) {
@@ -137,6 +145,73 @@ export class Sim {
     return best;
   }
 
+  // ====== Situs usaha & hiburan ======
+  warungSite() {
+    const maxW = Math.max(1, Math.floor(this.npcs.length / 10));
+    if (this.warungs.length >= maxW) return null;
+    const m = this.world.market;
+    let best = null, bv = -Infinity;
+    for (let dy = -9; dy <= 9; dy++) for (let dx = -9; dx <= 9; dx++) {
+      const x = m.x + dx, y = m.y + dy;
+      if (!this.world.inBounds(x, y)) continue;
+      const t = this.world.at(x, y);
+      if (t.type !== T.GRASS) continue;
+      const d = Math.hypot(dx, dy);
+      if (d < 2.5) continue;
+      // jangan nempel usaha lain
+      let crowded = false;
+      for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n = this.world.at(x + ox, y + oy);
+        if (n && (n.type === T.WARUNG || n.type === T.KEDAI)) crowded = true;
+      }
+      if (crowded) continue;
+      const v = this.world.traffic[y * W + x] - d * 0.15;  // lokasi strategis = ramai
+      if (v > bv) { bv = v; best = { x, y }; }
+    }
+    return best;
+  }
+
+  kedaiSite() { return this.warungSite(); }
+
+  parkSite() {
+    const m = this.world.market;
+    for (let r = 3; r <= 9; r++) {
+      for (let a = 0; a < 16; a++) {
+        const x = Math.round(m.x + Math.cos(a) * r), y = Math.round(m.y + Math.sin(a) * r);
+        let ok = true;
+        for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
+          const t = this.world.at(x + dx, y + dy);
+          if (!t || t.type !== T.GRASS) ok = false;
+        }
+        if (ok) return { x, y };
+      }
+    }
+    return null;
+  }
+
+  pierSite() {
+    let best = null, bd = Infinity;
+    const m = this.world.market;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const t = this.world.tiles[y * W + x];
+      if (t.type !== T.WATER) continue;
+      let land = false, deep = 0;
+      for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n = this.world.at(x + ox, y + oy);
+        if (!n) continue;
+        if (n.type === T.WATER) deep++;
+        else if (this.world.passable(x + ox, y + oy)) land = true;
+      }
+      if (!land || deep < 2) continue;  // tepi danau yang menghadap air luas
+      const d = Math.hypot(x - m.x, y - m.y);
+      if (d < bd) { bd = d; best = { x, y }; }
+    }
+    return best;
+  }
+
+  npcWarung(npc) { return this.warungs.find(wt => wt.owner === npc.id); }
+  stockedWarung() { return this.warungs.find(wt => wt.stok > 0); }
+
   lampSite(npc) {
     if (this.lamps.length >= 24) return null;
     let best = null, bd = Infinity;
@@ -217,6 +292,14 @@ export class Sim {
     this.world.step();
     const isNewDay = this.world.day !== this.lastDay;
     if (isNewDay) { this.lastDay = this.world.day; this.dailyUpdate(); }
+
+    // festival berlangsung sore sampai malam
+    const h = this.world.hour;
+    const wasActive = this.festivalActive;
+    this.festivalActive = this.festivalToday && h >= 17.5 && h < 22;
+    if (this.festivalActive && !wasActive) {
+      this.log('🎪 FESTIVAL PANEN dimulai di alun-alun! Semua berkumpul!', 'culture');
+    }
 
     for (const npc of this.npcs) {
       if (!npc.alive) continue;
@@ -396,6 +479,11 @@ export class Sim {
     checkDiscoveries(this);   // kondisi matang? mungkin ada PENEMUAN
 
     const day = this.world.day;
+
+    // festival panen: desa makmur merayakan hidup (dan budaya menular deras)
+    this.festivalToday = this.npcs.length >= 13 && day % 11 === 8 &&
+      (this.market.stock.food > 15 || this.granary);
+
     if (day % 6 === 0) {
       this.log(`— Musim berganti: ${this.world.seasonName} —`, 'info');
       if (this.world.isWinter) this.log('❄️ Paceklik tiba. Semoga lumbung desa cukup...', 'danger');
@@ -477,6 +565,14 @@ export class Sim {
       heir.inv.wood += npc.inv.wood;
       if (npc.cart && !heir.cart) heir.cart = true;   // gerobak diwariskan
       if (npc.home && !heir.home) heir.home = npc.home;
+      // usaha keluarga diwariskan
+      for (const wt of this.warungs) {
+        if (wt.owner === npc.id) {
+          wt.owner = heir.id;
+          heir.logLife(this.world.day, `mewarisi warung ${npc.name}`);
+        }
+      }
+      if (this.kedai && this.kedai.owner === npc.id) this.kedai.owner = heir.id;
       heir.logLife(this.world.day, `mewarisi harta ${npc.name}`);
     }
     if (npc.partner) npc.partner.partner = null;

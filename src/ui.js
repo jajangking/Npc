@@ -2,7 +2,7 @@ import { ACTIONS } from './actions.js';
 import { MEME_POOL } from './social.js';
 import { TECHS, eraName } from './tech.js';
 
-const NEED_LABEL = { hunger: 'Kenyang', energy: 'Energi', social: 'Sosial' };
+const NEED_LABEL = { hunger: 'Kenyang', energy: 'Energi', social: 'Sosial', senang: 'Senang' };
 const TRAIT_LABEL = { rajin: 'Rajin', supel: 'Supel', berani: 'Berani', penasaran: 'Penasaran' };
 const SKILL_LABEL = { tani: 'Bertani', ramu: 'Meramu', kayu: 'Menebang', pancing: 'Memancing', dagang: 'Dagang', pesona: 'Pesona' };
 const ACTION_LABEL = {
@@ -11,6 +11,9 @@ const ACTION_LABEL = {
   cinta: 'Mendekati pujaan', jelajah: 'Menjelajah', santai: 'Bersantai', kabur: 'KABUR!',
   bangunJalan: 'Memasang jalan batu', bangunJembatan: 'Membangun jembatan', buatGerobak: 'Merakit gerobak',
   bangunLumbung: 'Membangun lumbung', upgradeRumah: 'Memperbesar rumah', pasangLampu: 'Memasang lampu jalan',
+  bukaWarung: 'Membuka warung', jagaWarung: 'Mengurus warung', makanWarung: 'Jajan di warung',
+  bukaKedai: 'Membuka kedai', nongkrong: 'Nongkrong di kedai', bangunTaman: 'Membangun taman',
+  bangunDermaga: 'Membangun dermaga', piknik: 'Piknik / wisata', main: 'Bermain', festival: 'Berpesta festival!',
 };
 
 function esc(s) { return String(s).replace(/</g, '&lt;'); }
@@ -39,7 +42,7 @@ export function renderInspector(el, sim, npc) {
     <div class="subtitle">Sedang: <b>${a}</b></div>
 
     <h4>Kebutuhan</h4>`;
-  const colors = { hunger: '#d9704f', energy: '#e8c84a', social: '#6fa8d6' };
+  const colors = { hunger: '#d9704f', energy: '#e8c84a', social: '#6fa8d6', senang: '#d46a9e' };
   for (const k of Object.keys(npc.needs)) html += bar(NEED_LABEL[k], npc.needs[k], colors[k]);
 
   html += `<h4>Sifat (diwariskan + mutasi)</h4>`;
@@ -56,6 +59,8 @@ export function renderInspector(el, sim, npc) {
       <span class="tag">🪵 ${Math.round(npc.inv.wood)} kayu</span>
       <span class="tag">🪙 ${Math.round(npc.inv.coins * 10) / 10} koin</span>
       ${npc.cart ? '<span class="tag">🛞 gerobak</span>' : ''}
+      ${sim.npcWarung(npc) ? '<span class="tag">🍜 pemilik warung</span>' : ''}
+      ${sim.kedai && sim.kedai.owner === npc.id ? '<span class="tag">🍵 pemilik kedai</span>' : ''}
     </div>`;
 
   // Pelajaran hidup (nilai Q)

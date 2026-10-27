@@ -54,6 +54,15 @@ Pengetahuan desa (`tani / kayu / konstruksi / dagang`) terakumulasi dari **aktiv
 
 Urutan penemuan **beda di tiap dunia**, dan pengetahuan **ikut terkubur** bersama ahli yang mati — kehilangan massal bisa memicu kemunduran zaman. Jalan batu dibangun di atas jalur setapak yang benar-benar ramai: **infrastruktur mengikuti perilaku, bukan blueprint**.
 
+### 🍜 Kehidupan kota: usaha & hiburan
+Warga punya kebutuhan **Senang** — dan memenuhi kebutuhan itu melahirkan tempat-tempat baru, semuanya dari **inisiatif pribadi NPC** (wirausaha, bukan placement):
+
+- **Warung makan** 🍜 — NPC berbakat dagang memakai modalnya sendiri untuk buka warung di lokasi strategis (dipilih dari data lalu lintas kaki!). Dia menyetok masakan, warga jajan, kas terkumpul. Usaha **diwariskan** ke anak.
+- **Kedai teh** 🍵 — tempat nongkrong sore; sarang gosip tempat relasi & budaya menular paling deras.
+- **Taman desa** 🌳 dan **Dermaga wisata** 🛥️ — piknik & menikmati pemandangan danau; yang penasaran lebih suka berwisata ke dermaga.
+- **Anak-anak bermain** ⚽ — kejar-kejaran di sekitar taman.
+- **Festival Panen** 🎪 — saat desa makmur, semua berkumpul di alun-alun yang dihiasi umbul-umbul: menari, berpesta, budaya menyebar dua kali lipat.
+
 ### 💰 Ekonomi
 Harga pasar murni dari supply/demand harian. Panen raya → harga anjlok; musim dingin → pangan meroket. NPC merespons harga (menimbun, beralih profesi, beli vs. cari sendiri).
 

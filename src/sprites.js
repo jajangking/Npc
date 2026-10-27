@@ -221,6 +221,96 @@ export function buildSprites() {
     px(g, 2, 5, '#4a3f30', 4, 1);
   });
 
+  // ---------- WARUNG MAKAN ----------
+  S.warung = mk(18, 22, (g) => {
+    // gerobak/meja warung
+    px(g, 2, 12, '#9d7a50', 14, 9);
+    for (let r = 0; r < 3; r++) px(g, 2, 14 + r * 3, '#8a6a44', 14, 1);
+    px(g, 2, 12, '#b58f63', 14, 1);
+    // kaca etalase
+    px(g, 4, 14, '#efe6d2', 6, 4);
+    px(g, 5, 15, '#e8c84a', 2, 2);   // nasi/lauk
+    px(g, 7, 15, '#c0392b', 2, 2);
+    // panci & uap
+    px(g, 12, 10, '#6e6a5e', 4, 3);
+    px(g, 13, 9, '#8a8578', 2, 1);
+    // kanopi oranye
+    for (let r = 0; r < 6; r++) {
+      for (let cx = 0; cx < 18; cx += 3) {
+        px(g, cx, 2 + r, (cx / 3) % 2 ? '#e8923a' : '#efe6d2', 3, 1);
+      }
+    }
+    for (let cx = 0; cx < 18; cx += 3) px(g, cx + 0, 8, (cx / 3) % 2 ? '#d07f2e' : '#d8ccb4', 3, 1);
+    px(g, 0, 1, '#a85a20', 18, 1);
+    // tiang
+    px(g, 2, 9, '#6b4a2a', 1, 12); px(g, 15, 9, '#6b4a2a', 1, 12);
+    // spanduk kecil
+    px(g, 6, 10, '#c0392b', 6, 2);
+    px(g, 7, 10, '#fff', 1, 1); px(g, 9, 11, '#fff', 1, 1);
+  });
+
+  // ---------- KEDAI TEH ----------
+  S.kedai = mk(18, 24, (g) => {
+    // dinding gelap hangat
+    px(g, 2, 11, '#8a6a48', 14, 12);
+    for (let r = 0; r < 4; r++) px(g, 2, 13 + r * 3, '#7a5c3e', 14, 1);
+    // pintu lebar terbuka
+    px(g, 5, 15, '#4a3522', 5, 8);
+    px(g, 6, 16, '#2e2420', 3, 7);
+    // jendela hangat
+    px(g, 12, 14, '#efe6d2', 3, 3);
+    px(g, 12, 15, '#ffd871', 3, 2);
+    // atap jerami
+    for (let r = 0; r < 9; r++) {
+      const half = 2 + r * 0.85;
+      const c = r % 2 ? '#b89a4a' : '#a8883c';
+      px(g, Math.round(9 - half), r + 1, c, Math.round(half * 2), 1);
+    }
+    px(g, 0, 10, '#8a7030', 18, 1);
+    // lentera gantung
+    px(g, 15, 11, '#3a332a', 1, 3);
+    px(g, 14, 14, '#e8923a', 3, 3);
+    px(g, 15, 15, '#fff2b0', 1, 1);
+    // bangku depan
+    px(g, 1, 21, '#6b4a2a', 4, 1);
+    px(g, 1, 22, '#5a3c20', 1, 2); px(g, 4, 22, '#5a3c20', 1, 2);
+  });
+
+  // ---------- TAMAN (tile bunga) ----------
+  S.park = mk(T, T, (g) => {
+    px(g, 0, 0, '#79ab61', T, T);
+    for (let i = 0; i < 10; i++) {
+      const rx = Math.floor(hash(i, 77) * T), ry = Math.floor(hash(77, i) * T);
+      px(g, rx, ry, '#6da357');
+    }
+    // bunga warna-warni
+    const flo = [['#e89ab8', 3, 3], ['#e8d44a', 10, 5], ['#d46a9e', 6, 10], ['#efefef', 12, 12], ['#e8923a', 2, 12]];
+    for (const [c, fx, fy] of flo) {
+      px(g, fx, fy, c);
+      px(g, fx, fy - 1, '#5c8f4b');
+    }
+    // jalur kerikil kecil
+    px(g, 7, 0, '#c2b294', 2, T);
+  });
+  // bangku taman
+  S.bench = mk(10, 8, (g) => {
+    px(g, 0, 2, '#8a6b42', 10, 2);
+    px(g, 0, 0, '#9d7c52', 10, 1);
+    px(g, 1, 4, '#5a3c20', 1, 3); px(g, 8, 4, '#5a3c20', 1, 3);
+  });
+
+  // ---------- DERMAGA ----------
+  S.pier = mk(T, T, (g) => {
+    // papan vertikal menjorok
+    px(g, 3, 0, '#a8835a', 10, T);
+    for (let r = 0; r < 5; r++) px(g, 3, r * 3 + 1, '#95724c', 10, 1);
+    px(g, 3, 0, '#6b4a2a', 1, T); px(g, 12, 0, '#6b4a2a', 1, T);
+    // pancang
+    px(g, 2, 3, '#5a3c20', 1, 4); px(g, 13, 9, '#5a3c20', 1, 4);
+    // pagar ujung
+    px(g, 3, 0, '#8a6b42', 10, 1);
+  });
+
   // ---------- POHON (3 kepadatan × 2 varian) ----------
   const tree = (size, v) => mk(T, 28, (g) => {
     const bx = 8 + (v ? -1 : 0);

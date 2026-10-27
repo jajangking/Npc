@@ -29,6 +29,7 @@ export class NPC {
       hunger: rng.range(55, 85),   // 0 = kelaparan parah
       energy: rng.range(60, 90),
       social: rng.range(40, 80),
+      senang: rng.range(45, 80),   // hiburan: piknik, nongkrong, festival, main
     };
     this.starveTicks = 0;
     this.asleep = false;
@@ -149,6 +150,7 @@ export class NPC {
     const n = this.needs;
     n.hunger -= this.asleep ? 0.03 : 0.06;
     n.social -= this.asleep ? 0.01 : (0.035 * (0.5 + this.traits.supel));
+    n.senang -= this.asleep ? 0.004 : 0.024;
     if (this.asleep) {
       const atHome = this.home && dist(this.x, this.y, this.home.x, this.home.y) < 2;
       const big = atHome && world.at(this.home.x, this.home.y)?.level === 2;
