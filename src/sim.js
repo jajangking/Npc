@@ -553,6 +553,15 @@ export class Sim {
     this.market.dailyUpdate(this);
     checkDiscoveries(this);   // kondisi matang? mungkin ada PENEMUAN
 
+    // Daya tampung desa dihitung dari kenyataan: atap & lumbung.
+    // Tiap rumah menampung ±4 jiwa; surplus pangan & lumbung menambah ruang.
+    {
+      const houses = this.world.tiles.filter(t => t.type === T.HOUSE).length;
+      this.carryCap = 24 + houses * 4 +
+        (this.granary ? 25 : 0) +
+        (this.market.stock.food > 40 ? 15 : 0);
+    }
+
     const day = this.world.day;
 
     // festival panen: desa makmur merayakan hidup (dan budaya menular deras)
@@ -640,8 +649,10 @@ export class Sim {
       if (npc.sex === 'P' && npc.partner?.alive && npc.home && npc.isAdult && !npc.isElder) {
         const foodSecure = npc.inv.food + npc.partner.inv.food > 6;
         const kids = npc.children.filter(c => c.alive && !c.isAdult).length;
-        // daya dukung lingkungan: makin padat desa, makin jarang kelahiran
-        const capacity = Math.max(0.06, 1 - this.npcs.length / 85);
+        // daya dukung ORGANIK: ditentukan rumah & pangan desa, bukan angka ajaib.
+        // Makin banyak rumah dibangun → makin banyak keluarga muat → kota meluas
+        // sampai lahan & kayu yang membatasi. Peta bisa benar-benar penuh.
+        const capacity = Math.max(0.05, 1 - this.npcs.length / (this.carryCap || 60));
         if (foodSecure && kids < 3 && this.rng.chance(0.25 * capacity)) {
           this.birth(npc, npc.partner);
         }
