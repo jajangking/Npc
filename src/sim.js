@@ -571,6 +571,34 @@ export class Sim {
       if (this.world.isWinter) this.log('❄️ Paceklik tiba. Semoga lumbung desa cukup...', 'danger');
     }
 
+    // ---- Pendatang: desa sepi menarik perantau dari negeri jauh ----
+    // Tidak ada kepunahan abadi — kota hantu pun suatu hari dihuni kembali,
+    // lengkap dengan bangunan & sejarah yang ditinggalkan pendahulunya.
+    if (this.npcs.length < 8 && this.rng.chance(this.npcs.length === 0 ? 0.5 : 0.15)) {
+      const wasDead = this.npcs.length === 0;
+      const m = this.world.market;
+      const jumlah = this.rng.int(2, 4);
+      for (let i = 0; i < jumlah; i++) {
+        const edgeY = this.rng.chance(0.5) ? 2 : H - 3;
+        const spawn = this.world.findNearest(
+          clamp(m.x + this.rng.int(-8, 8), 2, W - 3), edgeY,
+          (t) => t.type === T.GRASS, 12) || { x: m.x, y: m.y };
+        const npc = new NPC(this.rng, this.nameGen, {
+          x: spawn.x, y: spawn.y,
+          sex: i === 0 ? 'L' : i === 1 ? 'P' : undefined, // rombongan selalu campur
+          age: this.rng.int(16, 30),
+        });
+        npc.inv.food = 8; npc.inv.coins = 12;
+        this.seedKnowledge(npc, 5);
+        npc.thought = 'merantau mencari kehidupan baru';
+        npc.logLife(day, 'tiba di desa sebagai pendatang');
+        this.npcs.push(npc);
+      }
+      this.log(wasDead
+        ? `🚶 ${jumlah} perantau menemukan desa mati ini — dan memutuskan menghidupkannya kembali!`
+        : `🚶 ${jumlah} pendatang tiba dari negeri jauh — desa menyambut wajah baru`, 'info');
+    }
+
     // ---- Rumah kosong: bisa ditempati lagi, atau lapuk & roboh ----
     // (pemilik wafat tanpa penghuni → rumah terbengkalai secara organik)
     const occupied = new Set();
