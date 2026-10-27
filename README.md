@@ -36,6 +36,22 @@ systemd / `nohup`:
 nohup node server/server.js > desa.log 2>&1 &
 ```
 
+### Auto-update dari GitHub 🔄
+
+Pakai `run.sh` sebagai pengganti perintah di atas — dia yang mengurus semuanya:
+
+```bash
+chmod +x run.sh
+nohup ./run.sh > desa.log 2>&1 &
+```
+
+- Tiap 5 menit cek GitHub (branch yang sedang aktif). Ada commit baru? →
+  server dimatikan rapi (**desa di-autosave dulu**) → `git pull` → `npm install`
+  → `npm run build` → server nyala lagi → desa lanjut dari save. Downtime ±10 detik.
+- Server crash? Dinyalakan ulang otomatis dalam 5 detik.
+- `CHECK_INTERVAL=60 ./run.sh` untuk cek tiap menit; `PORT=8080` untuk ganti port.
+- Hentikan semuanya: `pkill -f run.sh && pkill -f "server/server.js"`
+
 | ENV | default | fungsi |
 |---|---|---|
 | `PORT` | `3000` | port HTTP + WebSocket |
