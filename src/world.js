@@ -189,6 +189,29 @@ export class World {
         f.growth += 0.058 * this.growthMod;
       }
     }
+
+    // suksesi alami (sekali per hari): hutan sehat menebar biji ke rumput
+    // sekitarnya yang jarang dilalui — hutan gundul bisa pulih dalam puluhan
+    // tahun, tapi kawasan yang ramai diinjak tetap terbuka. Tanpa ini,
+    // deforestasi permanen akan mematikan peradaban dalam jangka ribuan hari.
+    if (this.tick % DAY === 17) {
+      const newborn = [];
+      for (const t of this.forestList) {
+        if (t.type !== T.FOREST || t.wood < 3) continue;
+        if (!this.rng.chance(0.012 * this.growthMod)) continue;
+        const i = this.tiles.indexOf(t); // posisi tile induk
+        const x = i % W, y = (i / W) | 0;
+        const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]][this.rng.int(0, 3)];
+        const nx = x + dx, ny = y + dy;
+        if (!this.inBounds(nx, ny)) continue;
+        const idx = this.idx(nx, ny);
+        const n = this.tiles[idx];
+        if (n.type !== T.GRASS || this.traffic[idx] > 1) continue;
+        this.tiles[idx] = { type: T.FOREST, wood: 1, maxWood: this.rng.int(4, 7) };
+        newborn.push(this.tiles[idx]);
+      }
+      for (const t of newborn) this.forestList.push(t);
+    }
   }
 
   registerFarm(tile) {
