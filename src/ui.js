@@ -1,5 +1,6 @@
 import { ACTIONS } from './actions.js';
 import { MEME_POOL } from './social.js';
+import { TECHS, eraName } from './tech.js';
 
 const NEED_LABEL = { hunger: 'Kenyang', energy: 'Energi', social: 'Sosial' };
 const TRAIT_LABEL = { rajin: 'Rajin', supel: 'Supel', berani: 'Berani', penasaran: 'Penasaran' };
@@ -8,6 +9,8 @@ const ACTION_LABEL = {
   makan: 'Makan', tidur: 'Tidur', ramu: 'Meramu beri', pancing: 'Memancing', tani: 'Bertani',
   kayu: 'Menebang kayu', bangun: 'Membangun rumah', sosial: 'Bersosialisasi', dagang: 'Berdagang',
   cinta: 'Mendekati pujaan', jelajah: 'Menjelajah', santai: 'Bersantai', kabur: 'KABUR!',
+  bangunJalan: 'Memasang jalan batu', bangunJembatan: 'Membangun jembatan', buatGerobak: 'Merakit gerobak',
+  bangunLumbung: 'Membangun lumbung', upgradeRumah: 'Memperbesar rumah', pasangLampu: 'Memasang lampu jalan',
 };
 
 function esc(s) { return String(s).replace(/</g, '&lt;'); }
@@ -52,6 +55,7 @@ export function renderInspector(el, sim, npc) {
       <span class="tag">🍖 ${Math.round(npc.inv.food)} makanan</span>
       <span class="tag">🪵 ${Math.round(npc.inv.wood)} kayu</span>
       <span class="tag">🪙 ${Math.round(npc.inv.coins * 10) / 10} koin</span>
+      ${npc.cart ? '<span class="tag">🛞 gerobak</span>' : ''}
     </div>`;
 
   // Pelajaran hidup (nilai Q)
@@ -140,13 +144,17 @@ export function renderStats(el, sim) {
     .sort((a, b) => b.c - a.c);
   const topMeme = memeCounts[0] ? `${memeCounts[0].mm.emoji} ${memeCounts[0].mm.name} (${memeCounts[0].c})` : '—';
 
+  const techIcons = TECHS.filter(t => sim.techs.has(t.id)).map(t => `<span title="${t.name}">${t.emoji}</span>`).join('') || '—';
+  const k = sim.know;
+
   el.innerHTML = `
+    <span>🏛️ <b>${eraName(sim.techs.size)}</b> · ${techIcons}</span>
     <span>👥 Populasi <b>${pop}</b> (${kids} anak)</span>
     <span>🏠 Berumah <b>${houses}</b></span>
+    <span>📚 Ilmu: 🌾${Math.round(k.tani)} 🪓${Math.round(k.kayu)} 🏗️${Math.round(k.konstruksi)} 💰${Math.round(k.dagang)}</span>
     <span>🍖 Harga pangan <b>${m.prices.food}</b></span>
-    <span>🪵 Harga kayu <b>${m.prices.wood}</b></span>
-    <span>👶 ${sim.stats.births} lahir · ⚰️ ${sim.stats.deaths} wafat · 💞 ${sim.stats.weddings} nikah</span>
-    <span>🎭 Budaya dominan: <b>${topMeme}</b></span>`;
+    <span>👶 ${sim.stats.births} · ⚰️ ${sim.stats.deaths} · 💞 ${sim.stats.weddings}</span>
+    <span>🎭 Budaya: <b>${topMeme}</b></span>`;
 }
 
 export function renderClock(el, sim) {

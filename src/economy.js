@@ -13,13 +13,15 @@ export class Market {
     this.history = { food: [2.0], wood: [1.5] };
   }
 
-  trade(npc) {
+  trade(npc, sim) {
     let reward = 0.4;
     const p = this.prices;
+    let traded = false;
 
     // Jual surplus makanan
+    const stockCap = sim?.granary ? 260 : 120;
     const sellF = Math.max(0, npc.inv.food - 7);
-    if (sellF > 0 && this.stock.food < 120) {
+    if (sellF > 0 && this.stock.food < stockCap) {
       const margin = 0.9 + npc.skills.dagang * 0.2;
       const gain = Math.round(sellF * p.food * margin * 10) / 10;
       npc.inv.food -= sellF;
@@ -29,6 +31,7 @@ export class Market {
       npc.skills.dagang = clamp(npc.skills.dagang + 0.008, 0, 1);
       npc.thought = `menjual ${sellF} makanan, dapat ${gain} koin`;
       reward += 0.15 * sellF;
+      traded = true;
     }
 
     // Jual surplus kayu
@@ -40,6 +43,7 @@ export class Market {
       this.stock.wood += sellW;
       this.flow.woodSold += sellW;
       reward += 0.12 * sellW;
+      traded = true;
     }
 
     // Beli makanan kalau kelaparan & mampu
@@ -53,6 +57,7 @@ export class Market {
         this.flow.foodBought += want;
         npc.thought = `membeli ${want} makanan seharga ${cost} koin`;
         reward += 0.5;
+        traded = true;
       } else if (this.stock.food <= 0) {
         npc.thought = 'pasar kehabisan makanan!';
         reward = 0.25;
@@ -75,6 +80,9 @@ export class Market {
       }
     }
 
+    // transaksi nyata menumbuhkan ilmu perdagangan desa
+    if (traded && sim) sim.know.dagang += 0.3 + npc.skills.dagang * 0.3;
+
     return reward;
   }
 
@@ -91,7 +99,8 @@ export class Market {
       this.history[g].push(this.prices[g]);
       if (this.history[g].length > 60) this.history[g].shift();
     }
-    // stok pasar membusuk sedikit
-    this.stock.food = Math.max(0, this.stock.food - Math.ceil(this.stock.food * 0.06));
+    // stok pasar membusuk — lumbung desa membuatnya jauh lebih awet
+    const spoil = sim?.granary ? 0.015 : 0.06;
+    this.stock.food = Math.max(0, this.stock.food - Math.ceil(this.stock.food * spoil));
   }
 }

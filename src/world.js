@@ -10,6 +10,7 @@ export const SEASONS = ['Semi 🌸', 'Panas ☀️', 'Gugur 🍂', 'Dingin ❄�
 export const T = {
   GRASS: 0, WATER: 1, FOREST: 2, BUSH: 3, ROCK: 4,
   FERTILE: 5, FARM: 6, HOUSE: 7, MARKET: 8,
+  ROAD: 9, BRIDGE: 10, GRANARY: 11,
 };
 
 export class World {
@@ -34,6 +35,26 @@ export class World {
     const t = this.at(x, y);
     if (!t) return false;
     return t.type !== T.WATER && t.type !== T.ROCK;
+  }
+
+  // biaya medan: jalan batu cepat, hutan lambat
+  terrainCost(x, y) {
+    const t = this.at(x, y);
+    if (!t) return 1;
+    if (t.type === T.ROAD) return 0.55;
+    if (t.type === T.BRIDGE) return 0.85;
+    if (t.type === T.FOREST) return 1.3;
+    return 1;
+  }
+
+  // pengali kecepatan jalan kaki di tile ini
+  speedAt(x, y, hasCart) {
+    const t = this.at(x, y);
+    if (!t) return 1;
+    if (t.type === T.ROAD) return hasCart ? 1.8 : 1.5;
+    if (t.type === T.BRIDGE) return 1.2;
+    if (t.type === T.FOREST) return 0.85;
+    return 1;
   }
 
   // ====== Waktu ======
@@ -256,7 +277,7 @@ export class World {
         if (dx && dy && (!this.passable(cx + dx, cy) || !this.passable(cx, cy + dy))) continue; // jangan motong sudut
         const ni = ny * W + nx;
         if (closed[ni]) continue;
-        const ng = gScore[cur] + cost;
+        const ng = gScore[cur] + cost * this.terrainCost(nx, ny);
         if (ng < gScore[ni]) {
           gScore[ni] = ng;
           prev[ni] = cur;

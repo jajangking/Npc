@@ -1,6 +1,7 @@
 import { makeRng, clamp, dist } from './rng.js';
 import { makeNameGen } from './names.js';
-import { World, T, DAY } from './world.js';
+import { World, T, DAY, W, H } from './world.js';
+import { checkDiscoveries } from './tech.js';
 import { NPC, resetIds } from './npc.js';
 import { ACTIONS, chooseAction, startAction } from './actions.js';
 import { Market } from './economy.js';
@@ -23,6 +24,14 @@ export class Sim {
     this.logs = [];
     this.stats = { births: 0, deaths: 0, weddings: 0 };
     this.lastDay = 0;
+
+    // ---- Peradaban ----
+    this.know = { tani: 0, kayu: 0, konstruksi: 0, dagang: 0 };
+    this.techs = new Set();
+    this.granary = null;
+    this.lamps = [];
+    this.roadCount = 0;
+    this.bridgeCount = 0;
 
     // Penduduk awal
     const m = this.world.market;
@@ -76,6 +85,70 @@ export class Sim {
 
   countMeme(id) { return this.npcs.filter(n => n.memes.has(id)).length; }
   anyoneHasMeme(id) { return this.npcs.some(n => n.memes.has(id)); }
+
+  // ====== Situs pembangunan (cache ringan) ======
+  // Jalan batu dibangun DI ATAS jalur setapak yang paling ramai —
+  // infrastruktur mengikuti perilaku nyata warga.
+  roadSite() {
+    if (this.roadCount >= 110) return null;
+    if (this._roadCacheTick && this.world.tick - this._roadCacheTick < 150) return this._roadCache;
+    this._roadCacheTick = this.world.tick;
+    let best = null, bv = 4.2;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (this.world.tiles[i].type !== T.GRASS) continue;
+      const tr = this.world.traffic[i];
+      if (tr > bv) { bv = tr; best = { x, y }; }
+    }
+    this._roadCache = best;
+    return best;
+  }
+
+  bridgeSite() {
+    if (this.bridgeCount >= 12) return null;
+    if (this._bridgeCacheTick && this.world.tick - this._bridgeCacheTick < 500) return this._bridgeCache;
+    this._bridgeCacheTick = this.world.tick;
+    const w = this.world, m = w.market;
+    let best = null, bd = 22;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const t = w.tiles[y * W + x];
+      if (t.type !== T.WATER) continue;
+      // harus menyeberangkan sesuatu: ada daratan di kedua sisi dalam 3 tile
+      let cross = false;
+      for (const [dx, dy] of [[1, 0], [0, 1]]) {
+        let a = false, b = false;
+        for (let k = 1; k <= 3; k++) {
+          const ta = w.at(x - dx * k, y - dy * k);
+          if (ta && ta.type !== T.WATER) { a = true; break; }
+        }
+        for (let k = 1; k <= 3; k++) {
+          const tb = w.at(x + dx * k, y + dy * k);
+          if (tb && tb.type !== T.WATER) { b = true; break; }
+        }
+        if (a && b) { cross = true; break; }
+      }
+      if (!cross) continue;
+      // harus bisa dicapai tukangnya (ada tetangga passable)
+      if (!w.passable(x - 1, y) && !w.passable(x + 1, y) && !w.passable(x, y - 1) && !w.passable(x, y + 1)) continue;
+      const d = Math.hypot(x - m.x, y - m.y);
+      if (d < bd) { bd = d; best = { x, y }; }
+    }
+    this._bridgeCache = best;
+    return best;
+  }
+
+  lampSite(npc) {
+    if (this.lamps.length >= 24) return null;
+    let best = null, bd = Infinity;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const t = this.world.tiles[y * W + x];
+      if (t.type !== T.ROAD || t.lamp) continue;
+      if (this.lamps.some(l => Math.hypot(l.x - x, l.y - y) < 4.5)) continue;
+      const d = Math.hypot(x - npc.x, y - npc.y);
+      if (d < bd) { bd = d; best = { x, y }; }
+    }
+    return best;
+  }
 
   // ====== Helper pencarian sosial ======
   isSibling(a, b) {
@@ -288,6 +361,11 @@ export class Sim {
         }
         continue;
       }
+      // serigala enggan mendekati cahaya lampu jalan
+      if (prey && this.lamps.length &&
+          this.lamps.some(l => dist(prey.x, prey.y, l.x, l.y) < 3.2)) {
+        prey = null;
+      }
       if (prey) {
         const d = dist(prey.x, prey.y, wolf.x, wolf.y);
         const dx = (prey.x - wolf.x) / (d || 1), dy = (prey.y - wolf.y) / (d || 1);
@@ -315,6 +393,7 @@ export class Sim {
   // ====== PERGANTIAN HARI ======
   dailyUpdate() {
     this.market.dailyUpdate(this);
+    checkDiscoveries(this);   // kondisi matang? mungkin ada PENEMUAN
 
     const day = this.world.day;
     if (day % 6 === 0) {
@@ -385,6 +464,10 @@ export class Sim {
     npc.alive = false;
     npc.deathCause = cause;
     this.stats.deaths++;
+    // keahlian ikut terkubur: desa kehilangan sebagian pengetahuan
+    if (npc.isAdult) {
+      for (const k of Object.keys(this.know)) this.know[k] *= 0.985;
+    }
     this.log(`⚰️ ${npc.name} meninggal — ${cause}`, 'death');
     // warisan ke pasangan / anak
     const heir = (npc.partner?.alive && npc.partner) || npc.children.find(c => c.alive);
@@ -392,6 +475,7 @@ export class Sim {
       heir.inv.coins += npc.inv.coins;
       heir.inv.food += npc.inv.food;
       heir.inv.wood += npc.inv.wood;
+      if (npc.cart && !heir.cart) heir.cart = true;   // gerobak diwariskan
       if (npc.home && !heir.home) heir.home = npc.home;
       heir.logLife(this.world.day, `mewarisi harta ${npc.name}`);
     }

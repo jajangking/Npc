@@ -1,4 +1,5 @@
 import { clamp, dist } from './rng.js';
+import { T } from './world.js';
 
 let NEXT_ID = 1;
 export function resetIds() { NEXT_ID = 1; }
@@ -62,6 +63,7 @@ export class NPC {
     this.q = {};
 
     // ---- Keluarga & properti ----
+    this.cart = false;      // gerobak pribadi (teknologi)
     this.partner = null;
     this.parents = opts.parents || null;
     this.children = [];
@@ -148,7 +150,9 @@ export class NPC {
     n.hunger -= this.asleep ? 0.03 : 0.06;
     n.social -= this.asleep ? 0.01 : (0.035 * (0.5 + this.traits.supel));
     if (this.asleep) {
-      n.energy += this.home && dist(this.x, this.y, this.home.x, this.home.y) < 2 ? 0.55 : 0.33;
+      const atHome = this.home && dist(this.x, this.y, this.home.x, this.home.y) < 2;
+      const big = atHome && world.at(this.home.x, this.home.y)?.level === 2;
+      n.energy += big ? 0.72 : atHome ? 0.55 : 0.33;
     } else {
       n.energy -= 0.085;
     }
@@ -188,7 +192,8 @@ export class NPC {
     }
     if (!wp) wp = [tx, ty];
 
-    const sp = this.speed * speedMul * (this.isAdult ? 1 : 0.8) * (this.needs.energy < 12 ? 0.5 : 1);
+    const sp = this.speed * speedMul * (this.isAdult ? 1 : 0.8) * (this.needs.energy < 12 ? 0.5 : 1) *
+      world.speedAt(this.x, this.y, this.cart);
     const a = Math.atan2(wp[1] - this.y, wp[0] - this.x);
     const nx = this.x + Math.cos(a) * sp, ny = this.y + Math.sin(a) * sp;
     if (world.passable(nx, ny)) {

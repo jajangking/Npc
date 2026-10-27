@@ -132,6 +132,95 @@ export function buildSprites() {
     px(g, 5, 6, '#c2b294'); px(g, 12, 13, '#a89878');
   });
 
+  // ---------- JALAN BATU ----------
+  S.road = mk(T, T, (g) => {
+    px(g, 0, 0, '#8f8574', T, T);
+    // bebatuan
+    const stones = [[2, 2, 4, 3], [8, 1, 5, 4], [1, 7, 5, 4], [8, 7, 6, 3], [3, 12, 5, 3], [10, 11, 4, 4]];
+    for (let i = 0; i < stones.length; i++) {
+      const [sx, sy, sw, sh] = stones[i];
+      px(g, sx, sy, i % 2 ? '#9c9280' : '#a39986', sw, sh);
+      px(g, sx, sy, '#aba08c', sw, 1);
+    }
+    px(g, 6, 5, '#7d7465'); px(g, 13, 6, '#7d7465'); px(g, 2, 11, '#7d7465');
+  });
+
+  // ---------- JEMBATAN KAYU ----------
+  S.bridge = mk(T, T, (g) => {
+    // papan horizontal
+    for (let r = 0; r < 5; r++) {
+      px(g, 0, r * 3 + 1, r % 2 ? '#a8835a' : '#9d7a50', T, 3);
+      px(g, 0, r * 3 + 1, '#b58f63', T, 1);
+    }
+    // tepi gelap & pasak
+    px(g, 0, 0, '#6b4a2a', T, 1); px(g, 0, T - 1, '#6b4a2a', T, 1);
+    px(g, 2, 3, '#5a3c20'); px(g, 13, 3, '#5a3c20');
+    px(g, 2, 12, '#5a3c20'); px(g, 13, 12, '#5a3c20');
+  });
+
+  // ---------- LUMBUNG DESA (bangunan besar) ----------
+  S.granary = mk(22, 30, (g) => {
+    // dinding lebar
+    px(g, 2, 14, '#b5916a', 18, 15);
+    for (let r = 0; r < 5; r++) px(g, 2, 16 + r * 3, '#a07c56', 18, 1);
+    px(g, 2, 14, '#8a6b42', 1, 15); px(g, 19, 14, '#8a6b42', 1, 15);
+    // pintu gandang besar
+    px(g, 7, 20, '#7a5230', 8, 9);
+    px(g, 7, 20, '#684425', 8, 1);
+    px(g, 10, 20, '#684425', 1, 9); // belahan pintu
+    // palang X khas lumbung
+    px(g, 3, 15, '#8a6b42', 3, 1); px(g, 16, 15, '#8a6b42', 3, 1);
+    // atap pelana tinggi
+    for (let r = 0; r < 12; r++) {
+      const half = 2 + r * 0.8;
+      const c = r < 2 ? '#c05a42' : (r % 2 ? '#8a3a2e' : '#7c332a');
+      px(g, Math.round(11 - half), r + 2, c, Math.round(half * 2), 1);
+    }
+    px(g, 0, 13, '#6b2a22', 22, 1);
+    // jendela loteng
+    px(g, 9, 6, '#4a3522', 4, 4);
+    px(g, 10, 7, '#2e2420', 2, 2);
+  });
+
+  // ---------- RUMAH DUA LANTAI ----------
+  const house2 = (lit) => mk(20, 32, (g) => {
+    // dinding 2 lantai
+    px(g, 2, 10, '#c2a176', 16, 21);
+    for (let r = 0; r < 7; r++) px(g, 2, 12 + r * 3, '#ad8c62', 16, 1);
+    px(g, 2, 10, '#8a6b42', 1, 21); px(g, 17, 10, '#8a6b42', 1, 21);
+    // pembatas lantai
+    px(g, 2, 20, '#8a6b42', 16, 1);
+    // pintu
+    px(g, 4, 24, '#7a5230', 4, 7);
+    px(g, 7, 27, '#e8c84a');
+    // jendela bawah & 2 jendela atas
+    px(g, 12, 23, '#efe6d2', 4, 4); px(g, 13, 24, lit ? '#ffd871' : '#5a7a9a', 2, 2);
+    px(g, 4, 13, '#efe6d2', 4, 4); px(g, 5, 14, lit ? '#ffd871' : '#5a7a9a', 2, 2);
+    px(g, 12, 13, '#efe6d2', 4, 4); px(g, 13, 14, lit ? '#ffb84a' : '#4a6a8a', 2, 2);
+    // atap
+    for (let r = 0; r < 9; r++) {
+      const half = 2 + r * 0.95;
+      const c = r < 2 ? '#d9755a' : (r % 2 ? '#a8453a' : '#97392f');
+      px(g, Math.round(10 - half), r + 1, c, Math.round(half * 2), 1);
+    }
+    px(g, 0, 10, '#7e2f26', 20, 1);
+    // cerobong
+    px(g, 14, 1, '#8a8578', 3, 6);
+    px(g, 14, 1, '#6e6a5e', 3, 1);
+  });
+  S.house2 = house2(false);
+  S.house2Lit = house2(true);
+
+  // ---------- LAMPU JALAN ----------
+  S.lamp = mk(8, 20, (g) => {
+    px(g, 3, 4, '#3a332a', 2, 16);            // tiang
+    px(g, 2, 18, '#2e2922', 4, 2);            // alas
+    px(g, 1, 0, '#4a3f30', 6, 1);             // tudung
+    px(g, 2, 1, '#e8c84a', 4, 4);             // kaca lentera
+    px(g, 3, 2, '#fff2b0', 2, 2);             // nyala
+    px(g, 2, 5, '#4a3f30', 4, 1);
+  });
+
   // ---------- POHON (3 kepadatan × 2 varian) ----------
   const tree = (size, v) => mk(T, 28, (g) => {
     const bx = 8 + (v ? -1 : 0);

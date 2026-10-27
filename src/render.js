@@ -46,12 +46,17 @@ export function render(ctx, sim, selected) {
         break;
       }
       case T.MARKET: ctx.drawImage(S.plaza, px, py); break;
+      case T.ROAD: ctx.drawImage(S.road, px, py); break;
+      case T.BRIDGE:
+        ctx.drawImage(S.water[wf], px, py);
+        ctx.drawImage(S.bridge, px, py);
+        break;
       default: {
         ctx.drawImage(S.grass[Math.floor(hash(x, y) * 4)], px, py);
         // jalan setapak organik dari lalu lintas kaki
         const tr = w.traffic[y * W + x];
-        if (tr > 0.55 && t.type === T.GRASS) {
-          ctx.globalAlpha = Math.min(0.9, (tr - 0.55) / 4);
+        if (tr > 2.2 && t.type === T.GRASS) {
+          ctx.globalAlpha = Math.min(0.55, (tr - 2.2) / 9);
           ctx.drawImage(S.path, px, py);
           ctx.globalAlpha = 1;
         }
@@ -77,7 +82,9 @@ export function render(ctx, sim, selected) {
     if (t.type === T.FOREST) objs.push({ y: y + 0.9, draw: () => drawTree(ctx, t, x, y) });
     else if (t.type === T.BUSH) objs.push({ y: y + 0.8, draw: () => drawBush(ctx, t, x, y) });
     else if (t.type === T.ROCK) objs.push({ y: y + 0.8, draw: () => drawRock(ctx, x, y) });
-    else if (t.type === T.HOUSE) objs.push({ y: y + 0.95, draw: () => drawHouse(ctx, w, x, y, tick) });
+    else if (t.type === T.HOUSE) objs.push({ y: y + 0.95, draw: () => drawHouse(ctx, w, x, y, tick, t) });
+    else if (t.type === T.GRANARY) objs.push({ y: y + 0.97, draw: () => drawGranary(ctx, x, y) });
+    else if (t.type === T.ROAD && t.lamp) objs.push({ y: y + 0.6, draw: () => drawLamp(ctx, x, y) });
   }
   objs.push({ y: m.y + 1.95, draw: () => drawStall(ctx, m) });
   for (const n of sim.npcs) objs.push({ y: n.y + 0.5, draw: () => drawNpc(ctx, n, tick, n === selected) });
@@ -123,13 +130,16 @@ export function render(ctx, sim, selected) {
     ctx.globalCompositeOperation = 'lighter';
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const t = w.tiles[y * W + x];
-      if (t.type === T.HOUSE || t.type === T.MARKET) {
-        const cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
-        const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, 30);
-        g.addColorStop(0, `rgba(255, 180, 70, ${darkness * 0.33})`);
-        g.addColorStop(1, 'rgba(255,180,70,0)');
+      const isLamp = t.type === T.ROAD && t.lamp;
+      if (t.type === T.HOUSE || t.type === T.MARKET || t.type === T.GRANARY || isLamp) {
+        const cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2 - (isLamp ? 4 : 0);
+        const rad = isLamp ? 38 : 30;
+        const str = isLamp ? 0.45 : 0.33;
+        const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, rad);
+        g.addColorStop(0, `rgba(255, 190, 80, ${darkness * str})`);
+        g.addColorStop(1, 'rgba(255,190,80,0)');
         ctx.fillStyle = g;
-        ctx.fillRect(cx - 30, cy - 30, 60, 60);
+        ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
       }
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -181,14 +191,26 @@ function drawRock(ctx, x, y) {
   ctx.drawImage(S.rock, x * TILE, y * TILE + 2);
 }
 
-function drawHouse(ctx, w, x, y, tick) {
-  shadow(ctx, x * TILE + 8, y * TILE + TILE - 1, 9, 3);
+function drawHouse(ctx, w, x, y, tick, t) {
+  const big = t.level === 2;
+  shadow(ctx, x * TILE + 8, y * TILE + TILE - 1, big ? 10 : 9, 3);
   const lit = w.isNight;
-  ctx.drawImage(lit ? S.houseLit : S.house, x * TILE - 1, y * TILE - 8);
+  if (big) ctx.drawImage(lit ? S.house2Lit : S.house2, x * TILE - 2, y * TILE - 16);
+  else ctx.drawImage(lit ? S.houseLit : S.house, x * TILE - 1, y * TILE - 8);
   // asap cerobong (pelan, berkedip-kedip naik)
   const phase = Math.floor(tick / 6) % 14;
+  const smokeY = big ? y * TILE - 16 : y * TILE - 8;
   ctx.fillStyle = `rgba(200, 200, 200, ${0.5 - phase * 0.03})`;
-  ctx.fillRect(x * TILE + 12 + Math.sin((tick + x * 50) * 0.04) * 1.5, y * TILE - 8 - phase, 2, 2);
+  ctx.fillRect(x * TILE + 12 + Math.sin((tick + x * 50) * 0.04) * 1.5, smokeY - phase, 2, 2);
+}
+
+function drawGranary(ctx, x, y) {
+  shadow(ctx, x * TILE + 8, y * TILE + TILE - 1, 12, 3.5);
+  ctx.drawImage(S.granary, x * TILE - 3, y * TILE - 14);
+}
+
+function drawLamp(ctx, x, y) {
+  ctx.drawImage(S.lamp, x * TILE + 4, y * TILE - 6);
 }
 
 function drawStall(ctx, m) {
@@ -221,6 +243,20 @@ function drawNpc(ctx, n, tick, isSelected) {
   const moving = n.path && n.pathIdx < (n.path?.length || 0);
   const step = moving ? Math.floor(tick / 5 + n.id) % 2 : 0;
   const bob = moving ? (Math.floor(tick / 5 + n.id) % 2) : 0;
+
+  // gerobak dorong (teknologi!)
+  if (n.cart && !kid) {
+    ctx.fillStyle = '#8a6b42';
+    ctx.fillRect(cx - 11, cy - 5, 7, 4);          // bak
+    ctx.fillStyle = '#9d7c52';
+    ctx.fillRect(cx - 11, cy - 5, 7, 1);
+    ctx.fillStyle = '#4a3b28';
+    ctx.fillRect(cx - 9 + step, cy - 1, 2, 2);    // roda
+    ctx.fillStyle = '#6b4a2a';
+    ctx.fillRect(cx - 4, cy - 3, 3, 1);           // pegangan
+    if (n.inv.food > 7) { ctx.fillStyle = '#e8c84a'; ctx.fillRect(cx - 10, cy - 6, 3, 1); }
+    if (n.inv.wood > 4) { ctx.fillStyle = '#6b4a2a'; ctx.fillRect(cx - 7, cy - 6, 3, 1); }
+  }
 
   if (kid) {
     ctx.fillStyle = '#2e2420';

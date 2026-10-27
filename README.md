@@ -40,6 +40,20 @@ NPC kreatif sesekali *menciptakan* kebiasaan baru (Tarian Senja, Pai Beri, ...).
 ### 👶 Generasi & seleksi alam
 Pasangan terbentuk dari affinity yang tumbuh lewat interaksi. Anak mewarisi sifat orang tua (rajin, supel, berani, penasaran) **plus mutasi acak** — paceklik dan serigala menyeleksi sifat mana yang bertahan lintas generasi.
 
+### 🏛️ Progresi peradaban (emergent, bukan timeline)
+Pengetahuan desa (`tani / kayu / konstruksi / dagang`) terakumulasi dari **aktivitas nyata warga** — panen mengajarkan ilmu tani, menebang & membangun mengajarkan pertukangan, transaksi pasar mengajarkan perdagangan. Saat kondisinya matang (ilmu + populasi cukup), warga paling terampil & penasaran bisa **menemukan teknologi** — dengan peluang, bukan jadwal:
+
+| Teknologi | Efek |
+|---|---|
+| 🛣️ Jalan Batu | jalur setapak teramai dilapisi batu → jalan 50% lebih cepat, A* memprioritaskan jalan |
+| 🌉 Jembatan Kayu | sungai bisa diseberangi — wilayah baru terbuka |
+| 🛞 Gerobak Dorong | milik pribadi, bisa diwariskan: angkut lebih banyak, ngebut di jalan |
+| 🛖 Lumbung Desa | stok pasar nyaris tak membusuk — paceklik jauh lebih aman |
+| 🏡 Rumah Papan Besar | rumah 2 lantai, tidur jauh lebih pulih |
+| 🏮 Lampu Jalan | malam terang di koridor utama — serigala enggan mendekat |
+
+Urutan penemuan **beda di tiap dunia**, dan pengetahuan **ikut terkubur** bersama ahli yang mati — kehilangan massal bisa memicu kemunduran zaman. Jalan batu dibangun di atas jalur setapak yang benar-benar ramai: **infrastruktur mengikuti perilaku, bukan blueprint**.
+
 ### 💰 Ekonomi
 Harga pasar murni dari supply/demand harian. Panen raya → harga anjlok; musim dingin → pangan meroket. NPC merespons harga (menimbun, beralih profesi, beli vs. cari sendiri).
 
@@ -55,6 +69,7 @@ Siang-malam, 4 musim, sumber daya habis & tumbuh lagi (hutan bisa gundul permane
 | `src/sim.js` | Orkestrator: siklus hidup, serigala, gotong royong, generasi |
 | `src/world.js` | Dunia: terrain prosedural, musim, regrowth, A* |
 | `src/social.js` | Gosip, relasi, meme budaya |
+| `src/tech.js` | Pohon teknologi emergent & mekanisme penemuan |
 | `src/economy.js` | Pasar supply/demand |
 | `src/sprites.js` | Tileset pixel-art digambar prosedural (gaya TheoTown) |
 | `src/render.js`, `src/ui.js`, `src/main.js` | Canvas depth-sorted, inspektor NPC, loop |

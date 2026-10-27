@@ -90,6 +90,7 @@ ul.plain li b { color: var(--text); }
 #log .entry.danger { color: #e88a5a; }
 #log .entry.culture { color: #c9b3e8; }
 #log .entry.econ { color: var(--blue); }
+#log .entry.tech { color: var(--accent); font-weight: 600; }
 
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--panel); }
