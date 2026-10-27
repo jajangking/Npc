@@ -560,6 +560,28 @@ export class Sim {
       if (this.world.isWinter) this.log('❄️ Paceklik tiba. Semoga lumbung desa cukup...', 'danger');
     }
 
+    // ---- Rumah kosong: bisa ditempati lagi, atau lapuk & roboh ----
+    // (pemilik wafat tanpa penghuni → rumah terbengkalai secara organik)
+    const occupied = new Set();
+    for (const n of this.npcs) {
+      if (n.alive && n.home) occupied.add(Math.round(n.home.x) + ',' + Math.round(n.home.y));
+    }
+    this.emptyHouses = [];
+    for (let i = 0; i < this.world.tiles.length; i++) {
+      const t = this.world.tiles[i];
+      if (t.type !== T.HOUSE) continue;
+      const x = i % W, y = (i / W) | 0;
+      if (occupied.has(x + ',' + y)) { t.emptyDays = 0; continue; }
+      t.emptyDays = (t.emptyDays || 0) + 1;
+      if (t.emptyDays > 12) {
+        t.type = T.GRASS;
+        delete t.owner; delete t.level; delete t.emptyDays;
+        this.log('🏚️ Sebuah rumah kosong lapuk dan roboh dimakan waktu', 'info');
+      } else if (t.emptyDays >= 2) {
+        this.emptyHouses.push({ x, y }); // kandidat untuk ditempati warga
+      }
+    }
+
     for (const npc of [...this.npcs]) {
       if (!npc.alive) continue;
       npc.age++;

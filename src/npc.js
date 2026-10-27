@@ -82,6 +82,13 @@ export class NPC {
   get isAdult() { return this.age >= 14; }
   get isElder() { return this.age >= 60; }
 
+  // Punya rumah SENDIRI (bukan nebeng rumah keluarga/warisan)?
+  ownsHome(world) {
+    if (!this.home) return false;
+    const t = world.at(this.home.x, this.home.y);
+    return !!t && t.type === T.HOUSE && (t.owner === this.id || t.owner === this.partner?.id);
+  }
+
   get profession() {
     if (!this.isAdult) return 'anak-anak';
     let best = 'warga', bv = 0.42;

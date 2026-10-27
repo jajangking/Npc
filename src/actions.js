@@ -15,6 +15,22 @@ const HUNGER_URGENCY = (npc) => {
   return u;
 };
 // pengali untuk pekerjaan non-pangan: kalau lapar & tak punya stok, tunda dulu
+// Seberapa kuat keinginan punya rumah SENDIRI (0 = tidak ingin).
+// Tunawisma: sangat kuat. Nebeng rumah keluarga: tumbuh organik —
+// makin kuat kalau sudah menikah atau rumahnya sesak.
+const homeDrive = (npc, sim) => {
+  if (!npc.isAdult) return 0;
+  if (!npc.home) return 3.5;
+  const t = sim.world.at(npc.home.x, npc.home.y);
+  if (!t || t.type !== T.HOUSE) return 3;                              // rumahnya lenyap
+  if (t.owner === npc.id || t.owner === npc.partner?.id) return 0;     // sudah milik sendiri
+  const occupants = sim.npcs.filter(o =>
+    o.alive && o.home && o.home.x === npc.home.x && o.home.y === npc.home.y).length;
+  const sesak = Math.max(0, occupants - 2) * 0.9;
+  const nikah = npc.partner?.alive ? 2.4 : 0;
+  return Math.max(0, sesak + nikah + npc.traits.rajin * 1.4 - 1.5);
+};
+
 const WELL_FED = (npc) => (npc.needs.hunger < 30 && npc.inv.food <= 1) ? 0.15
   : (npc.needs.hunger < 50 && npc.inv.food <= 0) ? 0.45 : 1;
 
@@ -235,7 +251,7 @@ export const ACTIONS = {
       const civicPending =
         (!sim.hall && sim.know.konstruksi >= 55 && sim.npcs.length >= 16) ||
         (!sim.school && sim.know.konstruksi >= 45 && sim.npcs.length >= 14 && sim.kidsCount() >= 3);
-      if (!npc.home && npc.inv.wood < 14) need = 2.8;                         // butuh rumah!
+      if (npc.inv.wood < 14 && homeDrive(npc, sim) > 0) need = 2.8;           // butuh rumah sendiri!
       else if (civicPending && npc.traits.rajin > 0.45 && npc.inv.wood < 14) need = 0.9; // gotong royong proyek desa
       else if (sim.techs.has('gerobak') && !npc.cart && npc.inv.wood < 8) need = 0.9;   // nabung buat gerobak
       else if (sim.techs.has('rumah_besar') && npc.home &&
@@ -278,9 +294,12 @@ export const ACTIONS = {
   // ---------- MEMBANGUN RUMAH ----------
   bangun: {
     emoji: '🏠',
-    score(npc) {
-      if (!npc.isAdult || npc.home || npc.inv.wood < 14) return 0;
-      return 6 * WELL_FED(npc);
+    score(npc, sim) {
+      if (!npc.isAdult || npc.inv.wood < 14) return 0;
+      const drive = homeDrive(npc, sim);
+      if (drive <= 0) return 0;
+      if (!npc.home) return 6 * WELL_FED(npc);
+      return drive * 1.7 * WELL_FED(npc) * npc.qVal('bangun');
     },
     start(npc, sim) {
       // cari lahan dekat pasar / dekat rumah orang tua
@@ -300,15 +319,71 @@ export const ACTIONS = {
       if (++npc.action.t < 130) { npc.thought = 'memaku dan menyusun kayu...'; return null; }
       const t = sim.world.at(npc.action.tx, npc.action.ty);
       if (!t || t.type !== T.GRASS) return { done: true, reward: 0.3 };
+      const pisah = !!npc.home; // sebelumnya nebeng rumah keluarga
       t.type = T.HOUSE; t.owner = npc.id;
       npc.inv.wood -= 14;
       npc.home = { x: npc.action.tx, y: npc.action.ty };
       sim.know.konstruksi += 4;
       sim.know.kayu += 1.5;
-      if (npc.partner && !npc.partner.home) npc.partner.home = npc.home;
-      sim.log(`🏠 ${npc.name} selesai membangun rumah`, 'econ');
-      npc.logLife(sim.world.day, 'membangun rumah sendiri');
+      // pasangan ikut pindah (kecuali dia pemilik rumahnya sendiri)
+      if (npc.partner?.alive) {
+        const pt = npc.partner.home && sim.world.at(npc.partner.home.x, npc.partner.home.y);
+        if (!pt || pt.type !== T.HOUSE || pt.owner !== npc.partner.id) npc.partner.home = npc.home;
+      }
+      // anak kecil ikut orang tuanya
+      for (const c of npc.children) if (c.alive && !c.isAdult) c.home = npc.home;
+      sim.log(pisah
+        ? `🏠 ${npc.name} pisah dari rumah keluarga — membangun rumah sendiri`
+        : `🏠 ${npc.name} selesai membangun rumah`, 'econ');
+      npc.logLife(sim.world.day, pisah ? 'pisah rumah, membangun rumah sendiri' : 'membangun rumah sendiri');
       return { done: true, reward: 2.2 };
+    },
+  },
+
+  // ---------- MENEMPATI RUMAH KOSONG ----------
+  tempati: {
+    emoji: '🔑',
+    score(npc, sim) {
+      if (!npc.isAdult || npc.inv.wood < 4) return 0;
+      if (!sim.emptyHouses || !sim.emptyHouses.length) return 0;
+      const drive = homeDrive(npc, sim);
+      if (drive <= 0) return 0;
+      // lebih murah & cepat dari membangun baru — pilihan menarik
+      return (npc.home ? drive * 1.9 : 7) * WELL_FED(npc) * npc.qVal('tempati');
+    },
+    start(npc, sim) {
+      let best = null, bd = 1e9;
+      for (const h of sim.emptyHouses) {
+        const d = dist(npc.x, npc.y, h.x, h.y);
+        if (d < bd) { bd = d; best = h; }
+      }
+      if (!best) return false;
+      const t = sim.world.at(best.x, best.y);
+      if (!t || t.type !== T.HOUSE) return false;
+      npc.action.tx = best.x; npc.action.ty = best.y; npc.action.t = 0;
+      npc.thought = 'ada rumah kosong — mau kuperbaiki dan kutempati';
+    },
+    step(npc, sim) {
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 60) { npc.thought = 'membersihkan & memperbaiki rumah kosong...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.HOUSE) return { done: true, reward: 0.3 };
+      // keduluan ditempati orang lain?
+      const taken = sim.npcs.some(o =>
+        o.alive && o.home && o.home.x === npc.action.tx && o.home.y === npc.action.ty);
+      if (taken) return { done: true, reward: 0.4 };
+      t.owner = npc.id; t.emptyDays = 0;
+      npc.inv.wood -= 4;
+      npc.home = { x: npc.action.tx, y: npc.action.ty };
+      if (npc.partner?.alive && !npc.partner.ownsHome(sim.world)) npc.partner.home = npc.home;
+      for (const c of npc.children) if (c.alive && !c.isAdult) c.home = npc.home;
+      sim.emptyHouses = sim.emptyHouses.filter(h => h.x !== npc.action.tx || h.y !== npc.action.ty);
+      sim.log(`🔑 ${npc.name} menempati rumah kosong dan memperbaikinya`, 'econ');
+      npc.logLife(sim.world.day, 'menempati rumah kosong');
+      return { done: true, reward: 2.0 };
     },
   },
 

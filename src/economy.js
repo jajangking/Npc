@@ -34,8 +34,9 @@ export class Market {
       traded = true;
     }
 
-    // Jual surplus kayu
-    const sellW = npc.home ? Math.max(0, npc.inv.wood - 4) : 0;
+    // Jual surplus kayu — hanya yang sudah punya rumah SENDIRI;
+    // yang masih nebeng menyimpan kayunya untuk membangun
+    const sellW = (sim && npc.ownsHome(sim.world)) ? Math.max(0, npc.inv.wood - 4) : 0;
     if (sellW > 0) {
       const gain = Math.round(sellW * p.wood * (0.9 + npc.skills.dagang * 0.2) * 10) / 10;
       npc.inv.wood -= sellW;
@@ -68,7 +69,7 @@ export class Market {
     }
 
     // Beli kayu untuk calon rumah (kalau mahal nebang sendiri, ini alternatif)
-    if (!npc.home && npc.inv.wood < 14 && npc.inv.coins > p.wood * 6 && this.stock.wood > 0) {
+    if (sim && !npc.ownsHome(sim.world) && npc.inv.wood < 14 && npc.inv.coins > p.wood * 6 && this.stock.wood > 0) {
       const want = Math.min(5, Math.floor((npc.inv.coins * 0.5) / p.wood), this.stock.wood);
       if (want > 0) {
         const cost = Math.round(want * p.wood * 10) / 10;

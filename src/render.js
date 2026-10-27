@@ -105,8 +105,15 @@ export function render(ctx, sim, selected) {
         break;
       case T.HOUSE: {
         const big = t.level === 2;
-        const spr = w.isNight ? (big ? S.house2Lit : S.houseLit) : (big ? S.house2 : S.house);
-        put(x, y, () => { shadowE(ctx, sx + 16, sy + 10, 13, 5); ctx.drawImage(spr, sx, sy - (spr.height - IH)); drawSmoke(ctx, sx + 16, sy - (spr.height - IH), tick, x); });
+        const v = Math.floor(hash(x, y) * 4);
+        const empty = (t.emptyDays || 0) >= 2; // terbengkalai: gelap, tanpa asap
+        const lit = w.isNight && !empty;
+        const spr = (big ? (lit ? S.house2Lit : S.house2) : (lit ? S.houseLit : S.house))[v];
+        put(x, y, () => {
+          shadowE(ctx, sx + 16, sy + 10, 13, 5);
+          ctx.drawImage(spr, sx, sy - (spr.height - IH));
+          if (!empty) drawSmoke(ctx, sx + 16, sy - (spr.height - IH), tick, x);
+        });
         break;
       }
       case T.MARKET:
@@ -176,6 +183,7 @@ export function render(ctx, sim, selected) {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const t = w.tiles[y * W + x];
       const isLamp = t.type === T.ROAD && t.lamp;
+      if (t.type === T.HOUSE && (t.emptyDays || 0) >= 2) continue; // rumah kosong gelap
       const glow = t.type === T.HOUSE || t.type === T.MARKET || t.type === T.GRANARY ||
         t.type === T.WARUNG || t.type === T.KEDAI || t.type === T.SCHOOL ||
         t.type === T.HALL || t.type === T.PENDOPO || isLamp;

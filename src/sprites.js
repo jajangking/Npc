@@ -277,19 +277,29 @@ export function buildSprites() {
     // jendela dinding kiri
     poly(g, [[4, rH + 13], [8, rH + 15], [8, rH + 19], [4, rH + 17]], lit ? shade('#ffd871', 0.8) : '#4a6a8a');
   };
-  S.house = building({ wallH: 12, roofPeak: 9, wall: '#c2a176', roof: '#a8453a', decorate: houseDecor(false) });
-  S.houseLit = building({ wallH: 12, roofPeak: 9, wall: '#c2a176', roof: '#a8453a', decorate: houseDecor(true) });
+  // Variasi rumah — tiap rumah beda gaya (dipilih dari hash posisi tile):
+  // terakota klasik, atap lumut, sirap kayu, dan batu tulis kelabu
+  const HOUSE_PAL = [
+    { wall: '#c2a176', roof: '#a8453a', wallH: 12, peak: 9 },
+    { wall: '#cdb892', roof: '#5f7a4a', wallH: 13, peak: 8 },
+    { wall: '#a98a68', roof: '#8a6f54', wallH: 11, peak: 10 },
+    { wall: '#9c8468', roof: '#5d5f74', wallH: 12, peak: 9 },
+  ];
+  S.house = HOUSE_PAL.map(p => building({
+    wallH: p.wallH, roofPeak: p.peak, wall: p.wall, roof: p.roof, decorate: houseDecor(false) }));
+  S.houseLit = HOUSE_PAL.map(p => building({
+    wallH: p.wallH, roofPeak: p.peak, wall: p.wall, roof: p.roof, decorate: houseDecor(true) }));
 
-  S.house2 = building({ wallH: 22, roofPeak: 10, wall: '#c9ab80', roof: '#97392f', decorate: (g, rH, wH) => {
-    houseDecor(false)(g, rH + 10, wH);
-    poly(g, [[27, rH + 7], [30, rH + 5.5], [30, rH + 9.5], [27, rH + 11]], '#4a6a8a');
-    poly(g, [[4, rH + 6], [8, rH + 8], [8, rH + 12], [4, rH + 10]], '#4a6a8a');
-  } });
-  S.house2Lit = building({ wallH: 22, roofPeak: 10, wall: '#c9ab80', roof: '#97392f', decorate: (g, rH, wH) => {
-    houseDecor(true)(g, rH + 10, wH);
-    poly(g, [[27, rH + 7], [30, rH + 5.5], [30, rH + 9.5], [27, rH + 11]], '#ffd871');
-    poly(g, [[4, rH + 6], [8, rH + 8], [8, rH + 12], [4, rH + 10]], '#ffb84a');
-  } });
+  const house2Deco = (lit) => (g, rH, wH) => {
+    houseDecor(lit)(g, rH + 10, wH);
+    const win = lit ? '#ffb84a' : '#4a6a8a';
+    poly(g, [[27, rH + 7], [30, rH + 5.5], [30, rH + 9.5], [27, rH + 11]], win);
+    poly(g, [[4, rH + 6], [8, rH + 8], [8, rH + 12], [4, rH + 10]], win);
+  };
+  S.house2 = HOUSE_PAL.map(p => building({
+    wallH: 22, roofPeak: 10, wall: p.wall, roof: p.roof, decorate: house2Deco(false) }));
+  S.house2Lit = HOUSE_PAL.map(p => building({
+    wallH: 22, roofPeak: 10, wall: p.wall, roof: p.roof, decorate: house2Deco(true) }));
 
   S.granary = building({ wallH: 18, roofPeak: 12, wall: '#b5916a', roof: '#7c332a', decorate: (g, rH) => {
     // pintu gandang besar

@@ -7,7 +7,7 @@ const TRAIT_LABEL = { rajin: 'Rajin', supel: 'Supel', berani: 'Berani', penasara
 const SKILL_LABEL = { tani: 'Bertani', ramu: 'Meramu', kayu: 'Menebang', pancing: 'Memancing', dagang: 'Dagang', pesona: 'Pesona' };
 const ACTION_LABEL = {
   makan: 'Makan', tidur: 'Tidur', ramu: 'Meramu beri', pancing: 'Memancing', tani: 'Bertani',
-  kayu: 'Menebang kayu', bangun: 'Membangun rumah', sosial: 'Bersosialisasi', dagang: 'Berdagang',
+  kayu: 'Menebang kayu', bangun: 'Membangun rumah', tempati: 'Menempati rumah kosong', sosial: 'Bersosialisasi', dagang: 'Berdagang',
   cinta: 'Mendekati pujaan', jelajah: 'Menjelajah', santai: 'Bersantai', kabur: 'KABUR!',
   bangunJalan: 'Memasang jalan batu', bangunJembatan: 'Membangun jembatan', buatGerobak: 'Merakit gerobak',
   bangunLumbung: 'Membangun lumbung', upgradeRumah: 'Memperbesar rumah', pasangLampu: 'Memasang lampu jalan',
