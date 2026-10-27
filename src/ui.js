@@ -14,6 +14,8 @@ const ACTION_LABEL = {
   bukaWarung: 'Membuka warung', jagaWarung: 'Mengurus warung', makanWarung: 'Jajan di warung',
   bukaKedai: 'Membuka kedai', nongkrong: 'Nongkrong di kedai', bangunTaman: 'Membangun taman',
   bangunDermaga: 'Membangun dermaga', piknik: 'Piknik / wisata', main: 'Bermain', festival: 'Berpesta festival!',
+  bangunSekolah: 'Membangun sekolah', belajar: 'Bersekolah', bangunBalai: 'Membangun balai desa',
+  bangunPendopo: 'Membangun pendopo', kePendopo: 'Berkunjung ke pendopo',
 };
 
 function esc(s) { return String(s).replace(/</g, '&lt;'); }
@@ -61,6 +63,7 @@ export function renderInspector(el, sim, npc) {
       ${npc.cart ? '<span class="tag">🛞 gerobak</span>' : ''}
       ${sim.npcWarung(npc) ? '<span class="tag">🍜 pemilik warung</span>' : ''}
       ${sim.kedai && sim.kedai.owner === npc.id ? '<span class="tag">🍵 pemilik kedai</span>' : ''}
+      ${sim.leader === npc.id ? '<span class="tag" style="border-color:#e8c84a;color:#e8c84a">🎖️ KEPALA DESA</span>' : ''}
     </div>`;
 
   // Pelajaran hidup (nilai Q)
@@ -152,8 +155,11 @@ export function renderStats(el, sim) {
   const techIcons = TECHS.filter(t => sim.techs.has(t.id)).map(t => `<span title="${t.name}">${t.emoji}</span>`).join('') || '—';
   const k = sim.know;
 
+  const leaderNpc = sim.leader ? sim.npcs.find(n => n.id === sim.leader) : null;
+
   el.innerHTML = `
     <span>🏛️ <b>${eraName(sim.techs.size)}</b> · ${techIcons}</span>
+    <span>🎖️ Kades: <b>${leaderNpc ? leaderNpc.name : '—'}</b></span>
     <span>👥 Populasi <b>${pop}</b> (${kids} anak)</span>
     <span>🏠 Berumah <b>${houses}</b></span>
     <span>📚 Ilmu: 🌾${Math.round(k.tani)} 🪓${Math.round(k.kayu)} 🏗️${Math.round(k.konstruksi)} 💰${Math.round(k.dagang)}</span>

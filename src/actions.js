@@ -1,5 +1,6 @@
 import { clamp, dist } from './rng.js';
 import { T } from './world.js';
+import { MEME_POOL } from './social.js';
 
 // ============================================================
 // UTILITY AI — tiap aksi punya fungsi score() dan step().
@@ -231,7 +232,11 @@ export const ACTIONS = {
       const spot = npc.bestSpot('wood', sim.world);
       if (!spot) return 0;
       let need = 0;
+      const civicPending =
+        (!sim.hall && sim.know.konstruksi >= 55 && sim.npcs.length >= 16) ||
+        (!sim.school && sim.know.konstruksi >= 45 && sim.npcs.length >= 14 && sim.kidsCount() >= 3);
       if (!npc.home && npc.inv.wood < 14) need = 2.8;                         // butuh rumah!
+      else if (civicPending && npc.traits.rajin > 0.45 && npc.inv.wood < 14) need = 0.9; // gotong royong proyek desa
       else if (sim.techs.has('gerobak') && !npc.cart && npc.inv.wood < 8) need = 0.9;   // nabung buat gerobak
       else if (sim.techs.has('rumah_besar') && npc.home &&
                sim.world.at(npc.home.x, npc.home.y)?.level !== 2 && npc.inv.wood < 10) need = 0.8; // nabung renovasi
@@ -1042,6 +1047,184 @@ export const ACTIONS = {
       if (npc.action.t % 60 === 0) {
         const others = sim.npcs.filter(o => o !== npc && o.alive && dist(o.x, o.y, m.x, m.y) < 5);
         if (others.length) sim.conversation(npc, others[Math.floor(npc.rng.rand() * others.length)]);
+      }
+      return null;
+    },
+  },
+
+  // ========== FASILITAS UMUM ==========
+
+  // ---------- MEMBANGUN SEKOLAH ----------
+  bangunSekolah: {
+    emoji: '🏫',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.school || npc.inv.wood < 12) return 0;
+      if (sim.know.konstruksi < 45 || sim.npcs.length < 14 || sim.kidsCount() < 3) return 0;
+      return 1.5 * (0.4 + npc.traits.rajin) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.civicSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y;
+      npc.action.t = 0;
+      npc.thought = 'anak-anak desa butuh sekolah';
+    },
+    step(npc, sim) {
+      if (sim.school) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 240) { npc.thought = 'membangun ruang kelas...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.GRASS) return { done: true, reward: 0.4 };
+      t.type = T.SCHOOL;
+      npc.inv.wood -= 12;
+      sim.school = { x: npc.action.tx, y: npc.action.ty };
+      sim.know.konstruksi += 5;
+      sim.log(`🏫 ${npc.name} membangun SEKOLAH DESA — ilmu kini diwariskan!`, 'tech');
+      npc.logLife(sim.world.day, 'membangun sekolah desa');
+      return { done: true, reward: 2.5 };
+    },
+  },
+
+  // ---------- BERSEKOLAH (anak-anak) ----------
+  belajar: {
+    emoji: '📖',
+    score(npc, sim) {
+      if (npc.isAdult || npc.age < 4 || !sim.school) return 0;
+      const h = sim.world.hour;
+      if (h < 7.5 || h > 14) return 0;
+      return 2.4 * npc.qVal('belajar');
+    },
+    start(npc, sim) {
+      npc.action.t = 0;
+      npc.thought = 'berangkat sekolah';
+    },
+    step(npc, sim) {
+      const s = sim.school;
+      if (!s) return { done: true, reward: 0.3 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(s.x, s.y, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      npc.action.t++;
+      npc.thought = 'belajar membaca & berhitung';
+      if (npc.action.t > 140) {
+        // pendidikan: semua keahlian tumbuh + ilmu desa terjaga
+        for (const k of Object.keys(npc.skills)) {
+          npc.skills[k] = clamp(npc.skills[k] + 0.006, 0, 1);
+        }
+        sim.know.tani += 0.03; sim.know.kayu += 0.03;
+        sim.know.konstruksi += 0.03; sim.know.dagang += 0.03;
+        npc.needs.senang = clamp(npc.needs.senang + 10, 0, 100);
+        npc.needs.social = clamp(npc.needs.social + 14, 0, 100);
+        return { done: true, reward: 1.4 };
+      }
+      return null;
+    },
+  },
+
+  // ---------- MEMBANGUN BALAI DESA ----------
+  bangunBalai: {
+    emoji: '🏛️',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.hall || npc.inv.wood < 14) return 0;
+      if (sim.know.konstruksi < 55 || sim.npcs.length < 16) return 0;
+      return 1.5 * (0.4 + npc.traits.rajin) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.civicSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y;
+      npc.action.t = 0;
+      npc.thought = 'desa sebesar ini butuh pemimpin & balai';
+    },
+    step(npc, sim) {
+      if (sim.hall) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 260) { npc.thought = 'membangun balai desa...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.GRASS) return { done: true, reward: 0.4 };
+      t.type = T.HALL;
+      npc.inv.wood -= 14;
+      sim.hall = { x: npc.action.tx, y: npc.action.ty };
+      sim.know.konstruksi += 6;
+      sim.log(`🏛️ ${npc.name} menyelesaikan BALAI DESA — musyawarah pemilihan dimulai!`, 'tech');
+      npc.logLife(sim.world.day, 'membangun balai desa');
+      sim.election();
+      return { done: true, reward: 2.5 };
+    },
+  },
+
+  // ---------- MEMBANGUN PENDOPO BUDAYA ----------
+  bangunPendopo: {
+    emoji: '🏯',
+    score(npc, sim) {
+      if (!npc.isAdult || sim.pendopo || npc.inv.wood < 10 || sim.npcs.length < 14) return 0;
+      const d = sim.dominantMeme();
+      if (!d.meme || d.count < sim.npcs.length * 0.6) return 0;
+      if (!npc.memes.has(d.meme)) return 0;   // hanya penganutnya yang terdorong
+      return 1.4 * (0.4 + npc.traits.supel) * WELL_FED(npc);
+    },
+    start(npc, sim) {
+      const s = sim.civicSite();
+      if (!s) return false;
+      npc.action.tx = s.x; npc.action.ty = s.y;
+      npc.action.t = 0;
+      npc.thought = 'budaya kita layak diabadikan';
+    },
+    step(npc, sim) {
+      if (sim.pendopo) return { done: true, reward: 0.4 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(npc.action.tx, npc.action.ty, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      if (++npc.action.t < 230) { npc.thought = 'mengukir tiang pendopo...'; return null; }
+      const t = sim.world.at(npc.action.tx, npc.action.ty);
+      if (!t || t.type !== T.GRASS) return { done: true, reward: 0.4 };
+      const d = sim.dominantMeme();
+      t.type = T.PENDOPO;
+      npc.inv.wood -= 10;
+      sim.pendopo = { x: npc.action.tx, y: npc.action.ty };
+      sim.pendopoMeme = d.meme;
+      const def = MEME_POOL.find(m => m.id === d.meme);
+      sim.log(`🏯 ${npc.name} membangun PENDOPO untuk mengabadikan "${def ? def.name : d.meme}"!`, 'culture');
+      npc.logLife(sim.world.day, 'membangun pendopo budaya');
+      return { done: true, reward: 2.5 };
+    },
+  },
+
+  // ---------- BERKUNJUNG KE PENDOPO ----------
+  kePendopo: {
+    emoji: '🙏',
+    score(npc, sim) {
+      if (!sim.pendopo || sim.world.isNight) return 0;
+      return (55 - npc.needs.senang) * 0.035 * (0.4 + npc.traits.supel * 0.5);
+    },
+    start(npc, sim) {
+      npc.action.t = 0;
+      npc.thought = 'berkunjung ke pendopo';
+    },
+    step(npc, sim) {
+      const p = sim.pendopo;
+      if (!p) return { done: true, reward: 0.3 };
+      if (!npc.action.arrived) {
+        if (npc.moveToward(p.x, p.y, sim.world)) npc.action.arrived = true;
+        return null;
+      }
+      npc.action.t++;
+      npc.thought = 'merenung di bawah atap pendopo';
+      if (npc.action.t > 60) {
+        npc.needs.senang = clamp(npc.needs.senang + 18, 0, 100);
+        // tradisi yang diabadikan menular pada pengunjung
+        if (sim.pendopoMeme && !npc.memes.has(sim.pendopoMeme) && npc.rng.chance(0.35)) {
+          npc.memes.add(sim.pendopoMeme);
+        }
+        return { done: true, reward: 1.1 };
       }
       return null;
     },

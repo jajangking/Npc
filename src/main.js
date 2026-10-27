@@ -1,11 +1,11 @@
 import { Sim } from './sim.js';
-import { W, H, TILE } from './world.js';
-import { render, pickNpc } from './render.js';
+import { W, H } from './world.js';
+import { render, pickNpc, screenToWorld, CANVAS_W, CANVAS_H } from './render.js';
 import { renderInspector, renderLog, renderStats, renderClock } from './ui.js';
 
 const canvas = document.getElementById('world');
-canvas.width = W * TILE;
-canvas.height = H * TILE;
+canvas.width = CANVAS_W;
+canvas.height = CANVAS_H;
 const ctx = canvas.getContext('2d');
 
 let sim = new Sim((Math.random() * 1e9) | 0);
@@ -35,9 +35,10 @@ document.getElementById('btn-reset').onclick = () => {
 
 canvas.addEventListener('click', (e) => {
   const rect = canvas.getBoundingClientRect();
-  const mx = ((e.clientX - rect.left) / rect.width) * W;
-  const my = ((e.clientY - rect.top) / rect.height) * H;
-  selected = pickNpc(sim, mx, my);
+  const px = ((e.clientX - rect.left) / rect.width) * CANVAS_W;
+  const py = ((e.clientY - rect.top) / rect.height) * CANVAS_H;
+  const wpt = screenToWorld(px, py);
+  selected = pickNpc(sim, wpt.x, wpt.y);
 });
 
 // ---- loop utama ----

@@ -38,6 +38,11 @@ export class Sim {
     this.kedai = null;       // tile KEDAI {owner, bx, by}
     this.park = null;        // {x, y} pusat taman
     this.pier = null;        // {x, y} dermaga wisata
+    this.school = null;      // {x, y} sekolah
+    this.hall = null;        // {x, y} balai desa
+    this.pendopo = null;     // {x, y} pendopo budaya
+    this.pendopoMeme = null; // budaya yang diabadikan
+    this.leader = null;      // id kepala desa terpilih
     this.festivalToday = false;
     this.festivalActive = false;
 
@@ -88,7 +93,7 @@ export class Sim {
 
   log(msg, type = 'info') {
     this.logs.push({ day: this.world.day, msg, type });
-    if (this.logs.length > 140) this.logs.shift();
+    if (this.logs.length > 300) this.logs.shift();
   }
 
   countMeme(id) { return this.npcs.filter(n => n.memes.has(id)).length; }
@@ -211,6 +216,65 @@ export class Sim {
 
   npcWarung(npc) { return this.warungs.find(wt => wt.owner === npc.id); }
   stockedWarung() { return this.warungs.find(wt => wt.stok > 0); }
+
+  // lahan untuk fasilitas umum: 1 tile rumput dekat alun-alun
+  civicSite() {
+    const m = this.world.market;
+    for (let r = 3; r <= 10; r++) {
+      for (let a = 0; a < 20; a++) {
+        const x = Math.round(m.x + Math.cos(a * 0.77) * r), y = Math.round(m.y + Math.sin(a * 0.77) * r);
+        const t = this.world.at(x, y);
+        if (t && t.type === T.GRASS) {
+          // jangan nempel bangunan lain
+          let ok = true;
+          for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const n = this.world.at(x + ox, y + oy);
+            if (n && n.type >= T.HOUSE && n.type !== T.ROAD) ok = false;
+          }
+          if (ok) return { x, y };
+        }
+      }
+    }
+    return null;
+  }
+
+  kidsCount() { return this.npcs.filter(n => !n.isAdult && n.age >= 4).length; }
+
+  dominantMeme() {
+    let best = null, bc = 0;
+    const seen = new Set();
+    for (const n of this.npcs) for (const m of n.memes) {
+      if (m.startsWith('penemu_') || seen.has(m)) continue;
+      seen.add(m);
+      const c = this.countMeme(m);
+      if (c > bc) { bc = c; best = m; }
+    }
+    return { meme: best, count: bc };
+  }
+
+  // ====== PEMILIHAN KEPALA DESA — prestise = rata-rata kasih sayang warga ======
+  election() {
+    let best = null, bv = -Infinity;
+    for (const cand of this.npcs) {
+      if (!cand.isAdult || !cand.alive) continue;
+      let sum = 0, votes = 0;
+      for (const voter of this.npcs) {
+        if (voter === cand || !voter.isAdult) continue;
+        const op = voter.opinions.get(cand.id);
+        if (op) { sum += op.aff; votes++; }
+      }
+      const prestige = votes > 0 ? sum / Math.max(4, votes) : -99;
+      if (prestige > bv) { bv = prestige; best = cand; }
+    }
+    if (best && best.id !== this.leader) {
+      this.leader = best.id;
+      this.log(`🗳️ Musyawarah desa: ${best.name} terpilih jadi KEPALA DESA!`, 'tech');
+      best.logLife(this.world.day, 'terpilih menjadi kepala desa');
+      for (const n of this.npcs) {
+        if (n !== best) n.opinionOf(best.id).aff = clamp(n.opinionOf(best.id).aff + 6, -100, 100);
+      }
+    }
+  }
 
   lampSite(npc) {
     if (this.lamps.length >= 24) return null;
@@ -481,8 +545,15 @@ export class Sim {
     const day = this.world.day;
 
     // festival panen: desa makmur merayakan hidup (dan budaya menular deras)
-    this.festivalToday = this.npcs.length >= 13 && day % 11 === 8 &&
+    // kepala desa yang baik menggelar festival lebih sering
+    const cycle = this.leader ? 8 : 11;
+    this.festivalToday = this.npcs.length >= 13 && day % cycle === cycle - 3 &&
       (this.market.stock.food > 15 || this.granary);
+
+    // musyawarah pemilihan kepala desa tiap 15 hari (butuh balai desa)
+    if (this.hall && day % 15 === 3) this.election();
+    // kepala desa wafat → kursi kosong sampai musyawarah berikutnya
+    if (this.leader && !this.npcs.some(n => n.id === this.leader)) this.leader = null;
 
     if (day % 6 === 0) {
       this.log(`— Musim berganti: ${this.world.seasonName} —`, 'info');

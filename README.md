@@ -63,6 +63,13 @@ Warga punya kebutuhan **Senang** — dan memenuhi kebutuhan itu melahirkan tempa
 - **Anak-anak bermain** ⚽ — kejar-kejaran di sekitar taman.
 - **Festival Panen** 🎪 — saat desa makmur, semua berkumpul di alun-alun yang dihiasi umbul-umbul: menari, berpesta, budaya menyebar dua kali lipat.
 
+### 🏛️ Fasilitas umum & pemerintahan
+Saat desa cukup dewasa, warga sendiri yang berinisiatif membangun institusi:
+
+- **Sekolah** 🏫 — tukang berpengalaman membangunnya kalau anak-anak sudah ramai. Anak yang rajin **belajar** naik semua keahliannya *dan* menjaga ilmu desa (penangkal kemunduran zaman saat para ahli wafat).
+- **Balai desa** 🏛️ — begitu berdiri, tiap 15 hari warga **musyawarah memilih kepala desa** — yang menang adalah warga paling disegani (rata-rata relasi sosial). Kades ditandai 🎖️ di peta, dan desa yang punya pemimpin menggelar festival lebih sering.
+- **Pendopo budaya** 🏯 — kalau satu tradisi dianut ≥60% warga, para penganutnya membangun pendopo untuk **mengabadikan budaya itu**: joglo dua tingkat tempat warga berkunjung, senang, dan tradisi menular.
+
 ### 💰 Ekonomi
 Harga pasar murni dari supply/demand harian. Panen raya → harga anjlok; musim dingin → pangan meroket. NPC merespons harga (menimbun, beralih profesi, beli vs. cari sendiri).
 
@@ -80,11 +87,11 @@ Siang-malam, 4 musim, sumber daya habis & tumbuh lagi (hutan bisa gundul permane
 | `src/social.js` | Gosip, relasi, meme budaya |
 | `src/tech.js` | Pohon teknologi emergent & mekanisme penemuan |
 | `src/economy.js` | Pasar supply/demand |
-| `src/sprites.js` | Tileset pixel-art digambar prosedural (gaya TheoTown) |
-| `src/render.js`, `src/ui.js`, `src/main.js` | Canvas depth-sorted, inspektor NPC, loop |
+| `src/sprites.js` | Tileset pixel-art isometrik digambar prosedural (gaya TheoTown) |
+| `src/render.js`, `src/ui.js`, `src/main.js` | Renderer isometrik depth-sorted, inspektor NPC, loop |
 
 ### Detail visual
-- **Pseudo-depth ala TheoTown**: pohon, rumah, lapak pasar "berdiri" lebih tinggi dari tile-nya dan diurut berdasarkan kedalaman (painter's algorithm)
+- **Isometrik "3D" ala TheoTown**: proyeksi diamond 2:1, bangunan menjulang dengan dua sisi dinding bershading beda + atap piramida, semua objek diurut berdasarkan kedalaman (painter's algorithm)
 - **Jalan setapak organik**: rumput yang sering diinjak NPC perlahan jadi jalan tanah — rute populer desa tergambar sendiri di peta, dan kembali berumput kalau ditinggalkan
 - **Siklus cahaya**: fajar/senja oranye, malam biru gelap dengan jendela rumah menyala & cahaya hangat pasar
 - **Animasi**: air beriak, langkah kaki NPC, asap cerobong, gandum tumbuh 4 tahap, kepadatan kanopi pohon mengikuti sisa kayunya

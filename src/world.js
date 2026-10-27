@@ -12,6 +12,7 @@ export const T = {
   FERTILE: 5, FARM: 6, HOUSE: 7, MARKET: 8,
   ROAD: 9, BRIDGE: 10, GRANARY: 11,
   WARUNG: 12, KEDAI: 13, PARK: 14, PIER: 15,
+  SCHOOL: 16, HALL: 17, PENDOPO: 18,
 };
 
 export class World {
