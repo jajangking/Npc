@@ -25,5 +25,6 @@ export function makeNameGen(rng) {
     },
     surname() { return rng.pick(SURNAME); },
     free(n) { used.delete(n); },
+    reserve(n) { used.add(n); },
   };
 }

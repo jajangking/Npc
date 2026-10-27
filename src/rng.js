@@ -9,6 +9,8 @@ export function makeRng(seed) {
   };
   return {
     rand: next,
+    getState: () => s,
+    setState: (v) => { s = v >>> 0; },
     range: (a, b) => a + next() * (b - a),
     int: (a, b) => Math.floor(a + next() * (b - a + 1)),
     pick: (arr) => arr[Math.floor(next() * arr.length)],

@@ -3,6 +3,7 @@ import { T } from './world.js';
 
 let NEXT_ID = 1;
 export function resetIds() { NEXT_ID = 1; }
+export function setNextId(n) { NEXT_ID = Math.max(NEXT_ID, n); }
 
 // ============================================================
 // NPC — agen otonom.

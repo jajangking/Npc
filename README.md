@@ -2,10 +2,12 @@
 
 Simulasi dunia desa fantasi berisi NPC yang **belajar, beradaptasi, dan berevolusi secara organik** — tanpa satu pun perilaku yang di-script. Semua drama (cinta, paceklik, trauma, tradisi, dinasti keluarga) muncul sendiri dari interaksi sistem.
 
-![Siang hari](preview_day.png)
-![Malam hari](preview_night.png)
+![Siang hari](preview_iso_day.png)
+![Malam hari](preview_iso_night.png)
 
 ## Menjalankan
+
+### Mode lokal (sim jalan di browser)
 
 ```bash
 npm install
@@ -13,6 +15,31 @@ npm run dev
 ```
 
 Buka `http://localhost:5173`.
+
+### Mode server persisten (desa hidup 24 jam di VPS) 🖥️
+
+Simulasi jalan **headless di Node**; browser cuma jadi *viewer* lewat WebSocket.
+Desa terus hidup walau semua tab ditutup, dan **autosave tiap 2 menit** ke
+`data/save.json` — restart server, desa bangun lagi dari titik terakhir.
+
+```bash
+npm install
+npm run build          # bikin dist/ (viewer)
+npm run server         # atau: PORT=3000 node server/server.js
+```
+
+Buka `http://<ip-server>:3000`. Semua penonton melihat desa yang **sama** —
+kontrol kecepatan/jeda berlaku global. Supaya awet, jalankan dengan pm2 /
+systemd / `nohup`:
+
+```bash
+nohup node server/server.js > desa.log 2>&1 &
+```
+
+| ENV | default | fungsi |
+|---|---|---|
+| `PORT` | `3000` | port HTTP + WebSocket |
+| `DATA_DIR` | `./data` | lokasi `save.json` |
 
 ## Cara kerja otaknya
 
@@ -89,6 +116,9 @@ Siang-malam, 4 musim, sumber daya habis & tumbuh lagi (hutan bisa gundul permane
 | `src/economy.js` | Pasar supply/demand |
 | `src/sprites.js` | Tileset pixel-art isometrik digambar prosedural (gaya TheoTown) |
 | `src/render.js`, `src/ui.js`, `src/main.js` | Renderer isometrik depth-sorted, inspektor NPC, loop |
+| `src/persist.js` | Save/load seluruh keadaan sim ke JSON (termasuk state RNG & relasi antar-NPC) |
+| `server/server.js` | Server persisten: sim headless + WebSocket + autosave |
+| `src/viewer.js`, `viewer.html` | Klien tipis: terima snapshot WS, render dengan engine yang sama |
 
 ### Detail visual
 - **Isometrik "3D" ala TheoTown**: proyeksi diamond 2:1, bangunan menjulang dengan dua sisi dinding bershading beda + atap piramida, semua objek diurut berdasarkan kedalaman (painter's algorithm)
